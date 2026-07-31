@@ -101,35 +101,55 @@ sched:index                 SORTED SET, score = sendAt (epoch ms), member = id
 
 ```
 /                              admin: lista preset, crea preset, lista invii programmati
-/p/[slug]                      la PWA — la pagina che si aggiunge alla Home
-/p/[slug]/manifest.webmanifest manifest generato al volo
-/p/[slug]/sw.js                service worker, scope /p/[slug]/
+/p/[slug]/                     la PWA — la pagina che si aggiunge alla Home
+/p/[slug]/manifest/            manifest generato al volo
+/sw.js                         service worker unico, statico in public/
 
-/api/presets                   GET lista · POST crea · DELETE elimina
-/api/icon/[slug]/[size]        serve il PNG (cache lunga, immutable)
-/api/subscribe                 POST registra la subscription del device
-/api/send                      POST {slug, title, body, delaySeconds}
-/api/deliver                   POST callback QStash (firmata) → invia la push
-/api/scheduled                 GET lista programmati · DELETE annulla
+/api/presets/                  GET lista · POST crea · DELETE elimina
+/api/icon/[slug]/[size]/       serve il PNG (cache lunga, immutable)
+/api/subscribe/                POST registra la subscription del device
+/api/send/                     POST {slug, title, body, delaySeconds}
+/api/deliver/                  POST callback QStash (firmata) → invia la push
+/api/scheduled/                GET lista programmati · DELETE annulla
 ```
-
-### Perché un service worker per preset
-
-Lo script sta sotto `/p/<slug>/`, quindi il suo scope di default è `/p/<slug>/`.
-Ogni PWA installata ha così registrazione, storage e push subscription isolate dalle
-altre — che è esattamente il comportamento voluto quando si installano più preset.
 
 ### `trailingSlash: true` è obbligatorio
 
 `next.config.ts` deve impostare `trailingSlash: true`, così l'URL canonico è
-`/p/<slug>/`. Serve perché tre cose devono combaciare esattamente:
-
-- lo scope del service worker, che è per forza `/p/<slug>/` (deriva dalla posizione dello script)
-- lo `scope` del manifest, che deve coincidere
-- lo `start_url`, che deve stare **dentro** lo scope
-
-Senza trailing slash, `start_url: "/p/test-a"` cadrebbe fuori da `scope: "/p/test-a/"`
+`/p/<slug>/`. Serve perché lo `start_url` del manifest deve stare **dentro** lo `scope`:
+senza trailing slash, `start_url: "/p/test-a"` cadrebbe fuori da `scope: "/p/test-a/"`
 e iOS rifiuterebbe l'installazione come PWA valida.
+
+**Conseguenza da non dimenticare:** con questa opzione Next rimanda in `308` ogni URL
+senza slash finale, API incluse. Quindi ogni fetch interna e l'URL di callback passato a
+QStash devono già finire con `/` — es. `${PUBLIC_BASE_URL}/api/deliver/`.
+
+### Un solo service worker, statico, con scope esplicito per preset
+
+Il service worker è **un file statico in `public/sw.js`**, non una route per preset.
+Due motivi:
+
+- I file in `public/` non sono toccati da `trailingSlash`, quindi `/sw.js` non
+  redirige. Fondamentale: la specifica Service Worker **rifiuta** uno script che
+  risponde con un redirect, quindi una route dinamica sotto `/p/<slug>/` fallirebbe la
+  registrazione.
+- Lo scope non deve per forza derivare dalla posizione dello script: basta passarlo
+  esplicito, e uno scope più *stretto* della cartella dello script è sempre permesso
+  senza header aggiuntivi.
+
+Quindi ogni PWA registra lo stesso script con scope proprio:
+
+```js
+navigator.serviceWorker.register('/sw.js', { scope: `/p/${slug}/` })
+```
+
+Ne risultano registrazioni, e quindi push subscription, isolate per preset — che è
+esattamente il comportamento voluto quando se ne installano più di uno.
+
+### La chiave VAPID pubblica arriva al client dal server
+
+`/p/[slug]/` è un server component che legge `VAPID_PUBLIC_KEY` e la passa come prop al
+componente client. Così non serve una variabile `NEXT_PUBLIC_*` duplicata.
 
 ### Manifest generato
 
