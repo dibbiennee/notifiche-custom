@@ -106,7 +106,9 @@ export default function PresetApp({ preset, vapidPublicKey }: Props) {
     setBusy(true);
     setError('');
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js', {
+      // La query serve solo a cambiare URL: iOS teneva in vita il service worker
+      // vecchio anche dopo il deploy, e con un URL nuovo e' costretto a installarlo.
+      const registration = await navigator.serviceWorker.register('/sw.js?v=2', {
         scope: `/p/${preset.slug}/`,
       });
       await navigator.serviceWorker.ready;

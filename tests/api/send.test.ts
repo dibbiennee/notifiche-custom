@@ -83,7 +83,7 @@ describe('POST /api/send/ — ramo immediato', () => {
     const res = await call({ slug: 'test-a', body: 'B', delaySeconds: 0 });
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ mode: 'immediate', sent: 1, removed: 0 });
-    expect(JSON.parse(sent[0]!)).toMatchObject({ body: 'B' });
+    expect(JSON.parse(sent[0]!)).toMatchObject({ title: 'B' });
     expect(publishJSON).not.toHaveBeenCalled();
   });
 });
@@ -109,7 +109,7 @@ describe('POST /api/send/ — ramo inline ritardato', () => {
       await vi.advanceTimersByTimeAsync(10_000);
       await run;
 
-      expect(JSON.parse(sent[0]!)).toMatchObject({ body: 'B' });
+      expect(JSON.parse(sent[0]!)).toMatchObject({ title: 'B' });
     } finally {
       vi.useRealTimers();
     }

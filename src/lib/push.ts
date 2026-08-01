@@ -2,15 +2,20 @@ import webpush from 'web-push';
 import type { Store, SubscriptionRecord } from './store';
 
 export type NotificationPayload = {
-  body: string;
+  /**
+   * Il testo viaggia come titolo, e il corpo non si manda affatto. iOS aggiunge
+   * sempre una riga "from <nome dell'app>" sotto la prima: riempiendo anche il
+   * corpo verrebbero tre righe con il nome ripetuto. Cosi' ne restano due.
+   */
+  title: string;
   icon: string;
   tag: string;
   url: string;
 };
 
-export function buildPayload(slug: string, body: string, now: number): NotificationPayload {
+export function buildPayload(slug: string, text: string, now: number): NotificationPayload {
   return {
-    body,
+    title: text,
     icon: `/api/icon/${slug}/192/`,
     tag: `${slug}-${now}`,
     url: `/p/${slug}/`,

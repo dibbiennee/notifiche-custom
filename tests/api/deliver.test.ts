@@ -69,7 +69,7 @@ describe('POST /api/deliver/', () => {
   it('consegna e rimuove il record programmato', async () => {
     const res = await call({ id: 'id-1', slug: 'test-a', body: 'B' });
     expect(res.status).toBe(200);
-    expect(JSON.parse(sent[0]!)).toMatchObject({ body: 'B' });
+    expect(JSON.parse(sent[0]!)).toMatchObject({ title: 'B' });
     expect(await store.getScheduled('id-1')).toBeNull();
   });
 

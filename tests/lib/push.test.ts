@@ -22,16 +22,16 @@ describe('buildPayload', () => {
   it("punta l'icona al preset e usa un tag univoco", () => {
     const payload = buildPayload('test-a', 'B', 1700000000000);
     expect(payload).toEqual({
-      body: 'B',
+      title: 'B',
       icon: '/api/icon/test-a/192/',
       tag: 'test-a-1700000000000',
       url: '/p/test-a/',
     });
   });
 
-  it('costruisce il payload senza titolo', () => {
+  it('manda il testo come titolo e non manda il corpo', () => {
     expect(buildPayload('test-a', 'You received a payment of €9.99 EUR', 1700000000000)).toEqual({
-      body: 'You received a payment of €9.99 EUR',
+      title: 'You received a payment of €9.99 EUR',
       icon: '/api/icon/test-a/192/',
       tag: 'test-a-1700000000000',
       url: '/p/test-a/',
