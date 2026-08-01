@@ -58,6 +58,15 @@ slash finale.
 
 Dettagli e motivazioni in `docs/superpowers/specs/`.
 
+## Verifica delle credenziali
+
+Controlla che Redis, QStash e le chiavi VAPID rispondano davvero. Non stampa mai
+un valore, solo l'esito:
+
+```bash
+npm run check
+```
+
 ## Test
 
 ```bash

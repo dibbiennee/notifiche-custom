@@ -9,7 +9,8 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check": "node --env-file=.env.local scripts/healthcheck.mjs"
   },
   "dependencies": {
     "@upstash/qstash": "^2.11.3",
