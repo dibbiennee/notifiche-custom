@@ -2,21 +2,14 @@ import webpush from 'web-push';
 import type { Store, SubscriptionRecord } from './store';
 
 export type NotificationPayload = {
-  title: string;
   body: string;
   icon: string;
   tag: string;
   url: string;
 };
 
-export function buildPayload(
-  slug: string,
-  title: string,
-  body: string,
-  now: number,
-): NotificationPayload {
+export function buildPayload(slug: string, body: string, now: number): NotificationPayload {
   return {
-    title,
     body,
     icon: `/api/icon/${slug}/192/`,
     tag: `${slug}-${now}`,

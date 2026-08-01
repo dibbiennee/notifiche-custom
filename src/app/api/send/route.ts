@@ -10,7 +10,7 @@ export const maxDuration = 60;
 
 const MAX_TEXT_LENGTH = 500;
 
-type Body = { slug?: unknown; title?: unknown; body?: unknown; delaySeconds?: unknown };
+type Body = { slug?: unknown; body?: unknown; delaySeconds?: unknown };
 
 function readText(value: unknown, field: string, { required }: { required: boolean }): string {
   if (typeof value !== 'string') {
@@ -45,8 +45,7 @@ export async function POST(request: Request): Promise<Response> {
     const raw = (await request.json()) as Body;
 
     const slug = readText(raw.slug, 'slug', { required: true });
-    const title = readText(raw.title, 'title', { required: true });
-    const body = readText(raw.body, 'body', { required: false });
+    const body = readText(raw.body, 'body', { required: true });
     const delaySeconds = readDelay(raw.delaySeconds);
 
     const store = getStore();
@@ -63,12 +62,7 @@ export async function POST(request: Request): Promise<Response> {
     // webPushSender va passato esplicito, non lasciato al valore di default di
     // deliver: solo così i test possono sostituirlo mockando il modulo.
     if (delaySeconds === 0) {
-      const result = await deliver(
-        store,
-        slug,
-        buildPayload(slug, title, body, Date.now()),
-        webPushSender,
-      );
+      const result = await deliver(store, slug, buildPayload(slug, body, Date.now()), webPushSender);
       return Response.json({ mode: 'immediate', ...result });
     }
 
@@ -77,7 +71,7 @@ export async function POST(request: Request): Promise<Response> {
     if (deliveryMode(delaySeconds) === 'inline') {
       after(async () => {
         await sleep(delaySeconds * 1000);
-        await deliver(store, slug, buildPayload(slug, title, body, Date.now()), webPushSender);
+        await deliver(store, slug, buildPayload(slug, body, Date.now()), webPushSender);
       });
       return Response.json({ mode: 'inline', delaySeconds }, { status: 202 });
     }
@@ -88,11 +82,11 @@ export async function POST(request: Request): Promise<Response> {
     const messageId = await publishDelayed({
       url: deliverCallbackUrl(),
       delaySeconds,
-      body: { id, slug, title, body },
+      body: { id, slug, body },
     });
 
     const sendAt = Date.now() + delaySeconds * 1000;
-    await store.addScheduled({ id, slug, title, body, sendAt, messageId });
+    await store.addScheduled({ id, slug, body, sendAt, messageId });
 
     return Response.json({ mode: 'scheduled', id, sendAt }, { status: 202 });
   } catch (error) {

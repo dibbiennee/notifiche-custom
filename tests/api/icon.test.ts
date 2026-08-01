@@ -13,7 +13,7 @@ beforeEach(async () => {
   store = createMemoryStore();
   setStoreForTesting(store);
   await store.createPreset(
-    { slug: 'test-a', name: 'Test A', defaultTitle: '', defaultBody: '', createdAt: 1 },
+    { slug: 'test-a', name: 'Test A', defaultBody: '', createdAt: 1 },
     { 192: PNG_BASE64, 512: PNG_BASE64 },
   );
 });

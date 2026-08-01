@@ -16,7 +16,6 @@ beforeEach(async () => {
   await store.addScheduled({
     id: 'id-1',
     slug: 'test-a',
-    title: 'T',
     body: 'B',
     sendAt: 2000,
     messageId: 'msg-1',

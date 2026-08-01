@@ -36,7 +36,7 @@ beforeEach(async () => {
   store = createMemoryStore();
   setStoreForTesting(store);
   await store.createPreset(
-    { slug: 'test-a', name: 'Test A', defaultTitle: '', defaultBody: '', createdAt: 1 },
+    { slug: 'test-a', name: 'Test A', defaultBody: '', createdAt: 1 },
     { 192: 'a', 512: 'b' },
   );
   await store.addSubscription('test-a', {
@@ -48,7 +48,6 @@ beforeEach(async () => {
   await store.addScheduled({
     id: 'id-1',
     slug: 'test-a',
-    title: 'T',
     body: 'B',
     sendAt: 1,
     messageId: 'msg-1',
@@ -68,16 +67,16 @@ const call = (body: unknown) =>
 
 describe('POST /api/deliver/', () => {
   it('consegna e rimuove il record programmato', async () => {
-    const res = await call({ id: 'id-1', slug: 'test-a', title: 'T', body: 'B' });
+    const res = await call({ id: 'id-1', slug: 'test-a', body: 'B' });
     expect(res.status).toBe(200);
-    expect(JSON.parse(sent[0]!)).toMatchObject({ title: 'T', body: 'B' });
+    expect(JSON.parse(sent[0]!)).toMatchObject({ body: 'B' });
     expect(await store.getScheduled('id-1')).toBeNull();
   });
 
   it('risponde 401 e non consegna se la firma non è valida', async () => {
     verifyQstashSignature.mockRejectedValueOnce(new UnauthorizedError());
 
-    const res = await call({ id: 'id-1', slug: 'test-a', title: 'T', body: 'B' });
+    const res = await call({ id: 'id-1', slug: 'test-a', body: 'B' });
     expect(res.status).toBe(401);
     expect(sent).toEqual([]);
     expect(await store.getScheduled('id-1')).not.toBeNull();
@@ -85,7 +84,7 @@ describe('POST /api/deliver/', () => {
 
   it('non fallisce se il record era già stato rimosso', async () => {
     await store.removeScheduled('id-1');
-    const res = await call({ id: 'id-1', slug: 'test-a', title: 'T', body: 'B' });
+    const res = await call({ id: 'id-1', slug: 'test-a', body: 'B' });
     expect(res.status).toBe(200);
     expect(sent).toHaveLength(1);
   });

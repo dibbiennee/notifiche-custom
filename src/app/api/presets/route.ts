@@ -7,7 +7,6 @@ const MAX_ICON_BASE64_LENGTH = 400_000;
 
 type CreateBody = {
   name?: unknown;
-  defaultTitle?: unknown;
   defaultBody?: unknown;
   icons?: { '192'?: unknown; '512'?: unknown };
 };
@@ -53,7 +52,6 @@ export async function POST(request: Request): Promise<Response> {
     const preset: Preset = {
       slug: slugify(name),
       name,
-      defaultTitle: readString(body.defaultTitle, 'defaultTitle'),
       defaultBody: readString(body.defaultBody, 'defaultBody'),
       createdAt: Date.now(),
     };

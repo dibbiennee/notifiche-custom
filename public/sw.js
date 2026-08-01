@@ -19,10 +19,10 @@ self.addEventListener('push', (event) => {
     data = {};
   }
 
-  const title = data.title || 'Notifica';
-
   event.waitUntil(
-    self.registration.showNotification(title, {
+    // Titolo vuoto di proposito: iOS mostra gia' il nome della PWA installata,
+    // e un titolo valorizzato aggiungerebbe una riga sopra a quello.
+    self.registration.showNotification('', {
       body: data.body || '',
       // Su iOS icon e badge vengono ignorati: contano quelli della PWA installata.
       // Restano qui perché su Android e desktop funzionano.

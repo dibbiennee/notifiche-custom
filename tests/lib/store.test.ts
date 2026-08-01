@@ -5,7 +5,6 @@ import type { Preset, ScheduledSend, Store, SubscriptionRecord } from '@/lib/sto
 const preset: Preset = {
   slug: 'test-a',
   name: 'Test A',
-  defaultTitle: 'Ciao',
   defaultBody: 'Corpo',
   createdAt: 1,
 };
@@ -79,7 +78,6 @@ describe('invii programmati', () => {
   const scheduled: ScheduledSend = {
     id: 'id-1',
     slug: 'test-a',
-    title: 'T',
     body: 'B',
     sendAt: 2000,
     messageId: 'msg-1',

@@ -55,7 +55,6 @@ export default function PresetApp({ preset, vapidPublicKey }: Props) {
   const [tokenInput, setTokenInput] = useState('');
   const [subscribed, setSubscribed] = useState(false);
 
-  const [title, setTitle] = useState(preset.defaultTitle);
   const [body, setBody] = useState(preset.defaultBody);
   const [value, setValue] = useState(10);
   const [unit, setUnit] = useState<Unit>('seconds');
@@ -148,7 +147,7 @@ export default function PresetApp({ preset, vapidPublicKey }: Props) {
       const delaySeconds = value * MULTIPLIERS[unit];
       const result = await apiFetch<{ mode: string; sent?: number }>('/api/send/', {
         method: 'POST',
-        body: JSON.stringify({ slug: preset.slug, title, body, delaySeconds }),
+        body: JSON.stringify({ slug: preset.slug, body, delaySeconds }),
       });
 
       setNotice(
@@ -257,11 +256,6 @@ export default function PresetApp({ preset, vapidPublicKey }: Props) {
       {subscribed && (
         <>
           <div className="field">
-            <label htmlFor="title">Titolo</label>
-            <input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
-
-          <div className="field">
             <label htmlFor="body">Testo</label>
             <textarea id="body" rows={3} value={body} onChange={(e) => setBody(e.target.value)} />
           </div>
@@ -297,7 +291,7 @@ export default function PresetApp({ preset, vapidPublicKey }: Props) {
             </div>
           </div>
 
-          <button onClick={send} disabled={busy || !title.trim()}>
+          <button onClick={send} disabled={busy || !body.trim()}>
             {busy ? 'Invio…' : 'Invia'}
           </button>
 
@@ -316,7 +310,7 @@ export default function PresetApp({ preset, vapidPublicKey }: Props) {
           <h2>Programmati</h2>
           {scheduled.map((item) => (
             <div className="card" key={item.id}>
-              <strong>{item.title}</strong>
+              <strong>{item.body}</strong>
               <div className="muted">{new Date(item.sendAt).toLocaleString('it-IT')}</div>
               <button
                 className="danger"

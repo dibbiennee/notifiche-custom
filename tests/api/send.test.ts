@@ -49,7 +49,7 @@ beforeEach(async () => {
   store = createMemoryStore();
   setStoreForTesting(store);
   await store.createPreset(
-    { slug: 'test-a', name: 'Test A', defaultTitle: '', defaultBody: '', createdAt: 1 },
+    { slug: 'test-a', name: 'Test A', defaultBody: '', createdAt: 1 },
     { 192: 'a', 512: 'b' },
   );
   await store.addSubscription('test-a', {
@@ -80,17 +80,17 @@ const call = (body: unknown, token = 'segreto') =>
 
 describe('POST /api/send/ — ramo immediato', () => {
   it('consegna subito con delaySeconds 0', async () => {
-    const res = await call({ slug: 'test-a', title: 'T', body: 'B', delaySeconds: 0 });
+    const res = await call({ slug: 'test-a', body: 'B', delaySeconds: 0 });
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ mode: 'immediate', sent: 1, removed: 0 });
-    expect(JSON.parse(sent[0]!)).toMatchObject({ title: 'T', body: 'B' });
+    expect(JSON.parse(sent[0]!)).toMatchObject({ body: 'B' });
     expect(publishJSON).not.toHaveBeenCalled();
   });
 });
 
 describe('POST /api/send/ — ramo inline ritardato', () => {
   it('accetta un ritardo entro la soglia senza passare da QStash', async () => {
-    const res = await call({ slug: 'test-a', title: 'T', body: 'B', delaySeconds: 30 });
+    const res = await call({ slug: 'test-a', body: 'B', delaySeconds: 30 });
     expect(res.status).toBe(202);
     expect(await res.json()).toMatchObject({ mode: 'inline', delaySeconds: 30 });
     expect(publishJSON).not.toHaveBeenCalled();
@@ -103,13 +103,13 @@ describe('POST /api/send/ — ramo inline ritardato', () => {
   it('consegna davvero quando il callback rimandato viene eseguito', async () => {
     vi.useFakeTimers();
     try {
-      await call({ slug: 'test-a', title: 'T', body: 'B', delaySeconds: 10 });
+      await call({ slug: 'test-a', body: 'B', delaySeconds: 10 });
 
       const run = deferred[0]!();
       await vi.advanceTimersByTimeAsync(10_000);
       await run;
 
-      expect(JSON.parse(sent[0]!)).toMatchObject({ title: 'T', body: 'B' });
+      expect(JSON.parse(sent[0]!)).toMatchObject({ body: 'B' });
     } finally {
       vi.useRealTimers();
     }
@@ -117,7 +117,7 @@ describe('POST /api/send/ — ramo inline ritardato', () => {
 
   it("rifiuta se non c'è nessun device registrato", async () => {
     await store.removeSubscription('test-a', 'https://push.example/1');
-    const res = await call({ slug: 'test-a', title: 'T', body: 'B', delaySeconds: 10 });
+    const res = await call({ slug: 'test-a', body: 'B', delaySeconds: 10 });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/device/i);
   });
@@ -125,7 +125,7 @@ describe('POST /api/send/ — ramo inline ritardato', () => {
 
 describe('POST /api/send/ — ramo QStash', () => {
   it('programma oltre la soglia e salva il record', async () => {
-    const res = await call({ slug: 'test-a', title: 'T', body: 'B', delaySeconds: 3600 });
+    const res = await call({ slug: 'test-a', body: 'B', delaySeconds: 3600 });
     expect(res.status).toBe(202);
 
     const json = await res.json();
@@ -139,7 +139,6 @@ describe('POST /api/send/ — ramo QStash', () => {
     expect(scheduled).toHaveLength(1);
     expect(scheduled[0]).toMatchObject({
       slug: 'test-a',
-      title: 'T',
       body: 'B',
       messageId: 'msg-1',
     });
@@ -148,7 +147,7 @@ describe('POST /api/send/ — ramo QStash', () => {
 
   it('non lascia record fantasma se QStash fallisce', async () => {
     publishJSON.mockRejectedValueOnce(new Error('qstash down'));
-    const res = await call({ slug: 'test-a', title: 'T', body: 'B', delaySeconds: 3600 });
+    const res = await call({ slug: 'test-a', body: 'B', delaySeconds: 3600 });
 
     expect(res.status).toBe(500);
     expect(await store.listScheduled()).toEqual([]);
@@ -157,23 +156,21 @@ describe('POST /api/send/ — ramo QStash', () => {
 
 describe('POST /api/send/ — validazione', () => {
   it('risponde 401 con token sbagliato', async () => {
-    const res = await call({ slug: 'test-a', title: 'T', body: 'B', delaySeconds: 0 }, 'altro00');
+    const res = await call({ slug: 'test-a', body: 'B', delaySeconds: 0 }, 'altro00');
     expect(res.status).toBe(401);
   });
 
   it('risponde 404 su preset inesistente', async () => {
-    expect((await call({ slug: 'boh', title: 'T', body: 'B', delaySeconds: 0 })).status).toBe(404);
+    expect((await call({ slug: 'boh', body: 'B', delaySeconds: 0 })).status).toBe(404);
   });
 
-  it('risponde 400 su titolo vuoto o ritardo fuori range', async () => {
-    expect((await call({ slug: 'test-a', title: '  ', body: 'B', delaySeconds: 0 })).status).toBe(
-      400,
-    );
-    expect((await call({ slug: 'test-a', title: 'T', body: 'B', delaySeconds: -1 })).status).toBe(
+  it('risponde 400 su testo vuoto o ritardo fuori range', async () => {
+    expect((await call({ slug: 'test-a', body: '  ', delaySeconds: 0 })).status).toBe(400);
+    expect((await call({ slug: 'test-a', body: 'B', delaySeconds: -1 })).status).toBe(
       400,
     );
     expect(
-      (await call({ slug: 'test-a', title: 'T', body: 'B', delaySeconds: 604801 })).status,
+      (await call({ slug: 'test-a', body: 'B', delaySeconds: 604801 })).status,
     ).toBe(400);
   });
 });

@@ -1,7 +1,6 @@
 export type Preset = {
   slug: string;
   name: string;
-  defaultTitle: string;
   defaultBody: string;
   createdAt: number;
 };
@@ -16,7 +15,6 @@ export type SubscriptionRecord = {
 export type ScheduledSend = {
   id: string;
   slug: string;
-  title: string;
   body: string;
   /** Epoch in millisecondi. */
   sendAt: number;

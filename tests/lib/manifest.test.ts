@@ -5,7 +5,6 @@ import type { Preset } from '@/lib/store';
 const preset: Preset = {
   slug: 'test-a',
   name: 'Test A',
-  defaultTitle: '',
   defaultBody: '',
   createdAt: 1,
 };

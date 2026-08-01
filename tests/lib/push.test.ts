@@ -20,10 +20,18 @@ beforeEach(async () => {
 
 describe('buildPayload', () => {
   it("punta l'icona al preset e usa un tag univoco", () => {
-    const payload = buildPayload('test-a', 'T', 'B', 1700000000000);
+    const payload = buildPayload('test-a', 'B', 1700000000000);
     expect(payload).toEqual({
-      title: 'T',
       body: 'B',
+      icon: '/api/icon/test-a/192/',
+      tag: 'test-a-1700000000000',
+      url: '/p/test-a/',
+    });
+  });
+
+  it('costruisce il payload senza titolo', () => {
+    expect(buildPayload('test-a', 'You received a payment of €9.99 EUR', 1700000000000)).toEqual({
+      body: 'You received a payment of €9.99 EUR',
       icon: '/api/icon/test-a/192/',
       tag: 'test-a-1700000000000',
       url: '/p/test-a/',
@@ -34,7 +42,7 @@ describe('buildPayload', () => {
 describe('deliver', () => {
   it('manda a tutte le subscription del preset', async () => {
     const send = vi.fn(async () => {});
-    const result = await deliver(store, 'test-a', buildPayload('test-a', 'T', 'B', 1), send);
+    const result = await deliver(store, 'test-a', buildPayload('test-a', 'B', 1), send);
 
     expect(send).toHaveBeenCalledTimes(2);
     expect(result).toEqual({ sent: 2, removed: 0 });
@@ -45,7 +53,7 @@ describe('deliver', () => {
       if (s.endpoint.endsWith('/1')) throw new PushGoneError(410);
     });
 
-    const result = await deliver(store, 'test-a', buildPayload('test-a', 'T', 'B', 1), send);
+    const result = await deliver(store, 'test-a', buildPayload('test-a', 'B', 1), send);
 
     expect(result).toEqual({ sent: 1, removed: 1 });
     const left = await store.listSubscriptions('test-a');
@@ -57,7 +65,7 @@ describe('deliver', () => {
       throw new PushGoneError(500);
     });
 
-    const result = await deliver(store, 'test-a', buildPayload('test-a', 'T', 'B', 1), send);
+    const result = await deliver(store, 'test-a', buildPayload('test-a', 'B', 1), send);
 
     expect(result).toEqual({ sent: 0, removed: 0 });
     expect(await store.listSubscriptions('test-a')).toHaveLength(2);
@@ -65,7 +73,7 @@ describe('deliver', () => {
 
   it('senza subscription registrate restituisce zero', async () => {
     const send = vi.fn(async () => {});
-    const result = await deliver(store, 'vuoto', buildPayload('vuoto', 'T', 'B', 1), send);
+    const result = await deliver(store, 'vuoto', buildPayload('vuoto', 'B', 1), send);
 
     expect(send).not.toHaveBeenCalled();
     expect(result).toEqual({ sent: 0, removed: 0 });

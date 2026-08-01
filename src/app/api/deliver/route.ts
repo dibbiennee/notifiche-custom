@@ -5,7 +5,7 @@ import { getStore } from '@/lib/store';
 
 export const maxDuration = 60;
 
-type Body = { id?: unknown; slug?: unknown; title?: unknown; body?: unknown };
+type Body = { id?: unknown; slug?: unknown; body?: unknown };
 
 // Non usa APP_TOKEN: chi chiama è QStash, e si autentica con la firma.
 export async function POST(request: Request): Promise<Response> {
@@ -17,17 +17,16 @@ export async function POST(request: Request): Promise<Response> {
     if (
       typeof payload.id !== 'string' ||
       typeof payload.slug !== 'string' ||
-      typeof payload.title !== 'string'
+      typeof payload.body !== 'string'
     ) {
       throw new BadRequestError('Payload di consegna malformato');
     }
-    const body = typeof payload.body === 'string' ? payload.body : '';
 
     const store = getStore();
     const result = await deliver(
       store,
       payload.slug,
-      buildPayload(payload.slug, payload.title, body, Date.now()),
+      buildPayload(payload.slug, payload.body, Date.now()),
       webPushSender,
     );
 

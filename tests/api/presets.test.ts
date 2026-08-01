@@ -25,7 +25,6 @@ const authed = (body?: unknown, method = 'POST') =>
 
 const validBody = {
   name: 'Test A',
-  defaultTitle: 'Ciao',
   defaultBody: 'Corpo',
   icons: { '192': 'aaa', '512': 'bbb' },
 };

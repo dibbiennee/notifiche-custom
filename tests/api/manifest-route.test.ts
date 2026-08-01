@@ -6,7 +6,7 @@ beforeEach(async () => {
   const store = createMemoryStore();
   setStoreForTesting(store);
   await store.createPreset(
-    { slug: 'test-a', name: 'Test A', defaultTitle: '', defaultBody: '', createdAt: 1 },
+    { slug: 'test-a', name: 'Test A', defaultBody: '', createdAt: 1 },
     { 192: 'a', 512: 'b' },
   );
 });
