@@ -44,6 +44,17 @@ for (const name of REQUIRED) {
   }
 }
 
+// QSTASH_TOKEN è base64 di un JSON, quindi la sua lunghezza è per forza un
+// multiplo di 4. Le console web spesso troncano l'ultimo "=" nel copia-incolla:
+// il token continua a decodificarsi (base64 è tollerante) ma il server lo
+// rifiuta con "invalid token", che da solo non fa capire niente.
+if (usable("QSTASH_TOKEN") && process.env.QSTASH_TOKEN.length % 4 !== 0) {
+  const mancanti = 4 - (process.env.QSTASH_TOKEN.length % 4);
+  fail(
+    `QSTASH_TOKEN ha perso il padding base64: aggiungi ${mancanti} carattere/i "=" in fondo`,
+  );
+}
+
 // Da qui in poi si prova comunque tutto ciò che è configurabile: sapere che
 // Redis funziona è utile anche mentre QStash è ancora da compilare.
 
