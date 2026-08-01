@@ -23,14 +23,30 @@ installano N icone.
 
 ## Deploy su Vercel
 
+In produzione: **https://notifiche-custom.vercel.app**
+
+L'ordine dei passi è vincolato:
+
+1. `npx vercel link` e `npx vercel --prod` → primo deploy, per ottenere l'URL
+2. Caricare le variabili: `printf '%s' "$VALORE" | npx vercel env add NOME production`
+3. `PUBLIC_BASE_URL` = l'URL stabile ottenuto al punto 1, **senza slash finale**
+4. `npx vercel --prod` di nuovo, perché al punto 1 quella variabile non esisteva
+
+Senza il secondo deploy i ritardi oltre i 30 secondi non partono: QStash non
+saprebbe quale URL richiamare.
+
+### Vercel Authentication va disattivata
+
+Un progetto nuovo nasce con la protezione SSO attiva su tutti gli URL
+`.vercel.app`. Con quella accesa la home redirige al login di Vercel e
+`/api/deliver/` risponde `401` prima ancora di raggiungere l'app: l'iPhone non
+può installare la PWA e QStash non può consegnare niente.
+
 ```bash
-npx vercel
-npx vercel --prod
+npx vercel project protection disable notifiche-custom --sso
 ```
 
-Impostare tutte le variabili di `.env.example` nel progetto Vercel.
-`PUBLIC_BASE_URL` va messo **dopo** il primo deploy, con l'URL definitivo e senza
-slash finale.
+L'app resta comunque protetta da `APP_TOKEN` su tutte le API.
 
 ## Uso
 
@@ -66,6 +82,19 @@ un valore, solo l'esito:
 ```bash
 npm run check
 ```
+
+## Test di fumo sulla produzione
+
+Verifica il giro completo su un'istanza deployata — preset, manifest, icone,
+autenticazione e round-trip di QStash — senza bisogno di un iPhone. Registra una
+subscription finta, programma un invio a un'ora e lo annulla, poi ripulisce
+tutto:
+
+```bash
+npm run smoke -- https://notifiche-custom.vercel.app
+```
+
+È il modo più rapido per accorgersi che `PUBLIC_BASE_URL` è sbagliato.
 
 ## Test
 
