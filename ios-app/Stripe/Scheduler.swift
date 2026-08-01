@@ -6,8 +6,10 @@ let PRESET_AMOUNTS = ["9.99", "49.99", "1890.00", "11900.00", "48900.00"]
 /// Nel testo, questo pezzo viene sostituito con la cifra.
 let AMOUNT_PLACEHOLDER = "|importo|"
 
-/// Tetto di notifiche per serie.
-let MAX_SERIES_LENGTH = 100
+/// Tetto di notifiche per serie. Non e' un numero scelto da noi: iOS tiene al
+/// massimo 64 notifiche locali in coda per app, e oltre quelle le scarta in
+/// silenzio. Chiederne di piu' significherebbe non farle arrivare.
+let MAX_SERIES_LENGTH = 64
 
 enum Limit {
     case count(Int)

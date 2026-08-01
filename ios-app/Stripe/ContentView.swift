@@ -64,7 +64,7 @@ struct ContentView: View {
                         }.pickerStyle(.segmented)
 
                         if limitByCount {
-                            Stepper("\(Int(count)) notifiche", value: $count, in: 1...100, step: 1)
+                            Stepper("\(Int(count)) notifiche", value: $count, in: 1...64, step: 1)
                         } else {
                             Stepper("Per \(Int(duration)) minuti", value: $duration, in: 1...120, step: 1)
                         }
