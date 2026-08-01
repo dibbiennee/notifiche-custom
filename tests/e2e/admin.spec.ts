@@ -62,6 +62,42 @@ test('fuori standalone la PWA mostra le istruzioni di installazione, non il comp
   await expect(page.getByText(name)).toHaveCount(0);
 });
 
+test('senza PushManager, come Safari su iPhone, mostra comunque le istruzioni di installazione', async ({
+  page,
+}) => {
+  // Su iOS window.PushManager non esiste finché la pagina non gira come app
+  // installata. Chromium invece ce l'ha sempre, quindi senza questa rimozione il
+  // ramo "browser non supportato" non verrebbe mai esercitato — ed è esattamente
+  // il buco da cui è passato il bug che mostrava "browser non supportato" a chi
+  // doveva solo aggiungere l'app alla Home.
+  await page.addInitScript(() => {
+    delete (window as unknown as Record<string, unknown>).PushManager;
+  });
+
+  await page.goto('/');
+  await page.getByLabel('Token').fill(TOKEN!);
+  await page.getByRole('button', { name: 'Entra' }).click();
+
+  const name = `E2E NoPush ${Date.now()}`;
+  await page.getByLabel(/^Nome/).fill(name);
+  await page
+    .getByLabel(/^Logo/)
+    .setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG });
+  await page.getByRole('button', { name: 'Crea preset' }).click();
+  await expect(page.getByText(name)).toBeVisible();
+
+  const href = await page.locator('.card', { hasText: name }).locator('a').getAttribute('href');
+  await page.goto(href!);
+
+  await expect(page.getByText('Aggiungi alla schermata Home')).toBeVisible();
+  await expect(page.getByText(/non espone le notifiche push/)).toHaveCount(0);
+
+  await page.goto('/');
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.locator('.card', { hasText: name }).getByRole('button', { name: 'Elimina' }).click();
+  await expect(page.getByText(name)).toHaveCount(0);
+});
+
 test("l'icona servita corrisponde al PNG caricato", async ({ page, request }) => {
   await page.goto('/');
   await page.getByLabel('Token').fill(TOKEN!);

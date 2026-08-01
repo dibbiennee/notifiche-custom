@@ -164,15 +164,10 @@ export default function PresetApp({ preset, vapidPublicKey }: Props) {
 
   if (!ready) return <main />;
 
-  if (!supported) {
-    return (
-      <main>
-        <h1>{preset.name}</h1>
-        <p>Questo browser non supporta le notifiche push. Su iPhone serve iOS 16.4 o successivo.</p>
-      </main>
-    );
-  }
-
+  // L'ordine di questi due controlli conta. Su iOS window.PushManager non esiste
+  // finché la pagina non gira come app installata: controllando il supporto per
+  // primo, Safari finirebbe sempre sul messaggio "browser non supportato" invece
+  // che sulle istruzioni di installazione, che sono la cosa da fare davvero.
   if (!standalone) {
     return (
       <main>
@@ -194,6 +189,24 @@ export default function PresetApp({ preset, vapidPublicKey }: Props) {
         </ol>
         <p className="muted">
           Da computer questa schermata è normale: l&apos;invio funziona comunque dalla pagina admin.
+        </p>
+        <p className="muted">
+          In Safari, prima dell&apos;installazione, le API push non esistono ancora: è previsto.
+        </p>
+      </main>
+    );
+  }
+
+  // Qui siamo già in standalone: se le API mancano ancora, il sistema è davvero
+  // troppo vecchio.
+  if (!supported) {
+    return (
+      <main>
+        <h1>{preset.name}</h1>
+        <p>
+          Questa app è installata sulla Home ma il sistema non espone le notifiche push. Su iPhone
+          servono iOS 16.4 o successivo: controlla in Impostazioni → Generali → Info la versione, e
+          aggiorna se è più vecchia.
         </p>
       </main>
     );
