@@ -5,7 +5,7 @@ import UserNotifications
 struct StripeApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
         }
     }
 }
