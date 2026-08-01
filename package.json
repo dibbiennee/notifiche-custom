@@ -9,7 +9,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
+    "test:e2e": "node --env-file=.env.local ./node_modules/.bin/playwright test",
     "check": "node --env-file=.env.local scripts/healthcheck.mjs"
   },
   "dependencies": {
