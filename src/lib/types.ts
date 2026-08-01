@@ -19,6 +19,10 @@ export type ScheduledSend = {
   /** Epoch in millisecondi. */
   sendAt: number;
   messageId: string;
+  /** Stesso valore per tutte le consegne di una serie. Assente su un invio singolo. */
+  seriesId?: string;
+  /** Posizione dentro la serie, da 0, per ordinare la lista. */
+  seriesIndex?: number;
 };
 
 export type IconSize = 192 | 512;

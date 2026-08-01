@@ -174,3 +174,96 @@ describe('POST /api/send/ — validazione', () => {
     ).toBe(400);
   });
 });
+
+describe('POST /api/send/ — serie', () => {
+  const serie = (extra: Record<string, unknown>) =>
+    call({
+      slug: 'test-a',
+      body: 'You received a payment of €|importo| EUR',
+      delaySeconds: 60,
+      amounts: ['9.99', '1890.00'],
+      ...extra,
+    });
+
+  it('programma una notifica per ogni istante calcolato', async () => {
+    const res = await serie({
+      series: { limit: { kind: 'count', count: 3 }, cadence: { kind: 'fixed', seconds: 60 } },
+    });
+
+    expect(res.status).toBe(202);
+    const json = await res.json();
+    expect(json.mode).toBe('series');
+    expect(json.count).toBe(3);
+    expect(publishJSON).toHaveBeenCalledTimes(3);
+    expect(publishJSON.mock.calls.map((c) => c[0]!.delay)).toEqual(['60s', '120s', '180s']);
+
+    const scheduled = await store.listScheduled();
+    expect(scheduled).toHaveLength(3);
+    expect(new Set(scheduled.map((s) => s.seriesId)).size).toBe(1);
+  });
+
+  it('sostituisce il segnaposto con uno degli importi scelti', async () => {
+    await serie({
+      series: { limit: { kind: 'count', count: 3 }, cadence: { kind: 'fixed', seconds: 60 } },
+    });
+
+    for (const chiamata of publishJSON.mock.calls) {
+      const inviato = (chiamata[0]!.body as { body: string }).body;
+      expect([
+        'You received a payment of €9.99 EUR',
+        'You received a payment of €1890.00 EUR',
+      ]).toContain(inviato);
+    }
+  });
+
+  it('rifiuta il segnaposto senza importi scelti', async () => {
+    const res = await serie({
+      amounts: [],
+      series: { limit: { kind: 'count', count: 2 }, cadence: { kind: 'fixed', seconds: 60 } },
+    });
+
+    expect(res.status).toBe(400);
+    expect(publishJSON).not.toHaveBeenCalled();
+  });
+
+  it('rifiuta una serie oltre le cento notifiche senza pubblicare niente', async () => {
+    const res = await serie({
+      series: { limit: { kind: 'count', count: 101 }, cadence: { kind: 'fixed', seconds: 60 } },
+    });
+
+    expect(res.status).toBe(400);
+    expect(publishJSON).not.toHaveBeenCalled();
+    expect(await store.listScheduled()).toHaveLength(0);
+  });
+
+  it('annulla quelle già pubblicate se una pubblicazione fallisce', async () => {
+    const del = vi.fn<QstashClient['messages']['delete']>(async () => undefined);
+    let n = 0;
+    publishJSON.mockImplementation(async () => {
+      n += 1;
+      if (n === 3) throw new Error('QStash giù');
+      return { messageId: `msg-${n}` };
+    });
+    setQstashClientForTesting({ publishJSON, messages: { delete: del } });
+
+    const res = await serie({
+      series: { limit: { kind: 'count', count: 4 }, cadence: { kind: 'fixed', seconds: 60 } },
+    });
+
+    expect(res.status).toBe(500);
+    expect(del).toHaveBeenCalledTimes(2);
+    expect(await store.listScheduled()).toHaveLength(0);
+  });
+
+  it('consegna inline le notifiche entro i trenta secondi', async () => {
+    const res = await serie({
+      delaySeconds: 0,
+      series: { limit: { kind: 'count', count: 3 }, cadence: { kind: 'fixed', seconds: 10 } },
+    });
+
+    expect(res.status).toBe(202);
+    const json = await res.json();
+    expect(json).toMatchObject({ mode: 'series', count: 3, scheduled: 0, inline: 3 });
+    expect(publishJSON).not.toHaveBeenCalled();
+  });
+});
