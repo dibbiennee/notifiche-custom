@@ -103,6 +103,15 @@ struct ContentView: View {
         }
     }
 
+    /// Se nel bundle c'e' un file chiamato `notifica` (caf, aiff o wav, sotto i
+    /// 30 secondi) viene usato quello. Altrimenti resta il suono di sistema.
+    private var customSound: UNNotificationSound? {
+        for ext in ["caf", "aiff", "wav"] where Bundle.main.url(forResource: "notifica", withExtension: ext) != nil {
+            return UNNotificationSound(named: UNNotificationSoundName("notifica.\(ext)"))
+        }
+        return nil
+    }
+
     private func show(_ m: String, error: Bool) {
         message = m
         isError = error
@@ -132,7 +141,7 @@ struct ContentView: View {
             let content = UNMutableNotificationContent()
             // Solo il corpo: il nome dell'app lo mette iOS nell'intestazione.
             content.body = amounts.isEmpty ? text : renderBody(text, amount: pickAmount(amounts) ?? "")
-            content.sound = .default
+            content.sound = customSound ?? .default
 
             // Il trigger vuole un intervallo strettamente positivo.
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, offset), repeats: false)
