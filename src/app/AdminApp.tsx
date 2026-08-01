@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch, getToken, setToken } from '@/lib/client';
+import { apiFetch, isAuthenticated, login } from '@/lib/client';
 import { processIcon } from '@/lib/image';
 import type { Preset } from '@/lib/types';
 
 export default function AdminApp() {
+  const [ready, setReady] = useState(false);
   const [tokenReady, setTokenReady] = useState(false);
   const [tokenInput, setTokenInput] = useState('');
   const [presets, setPresets] = useState<Preset[]>([]);
@@ -26,16 +27,27 @@ export default function AdminApp() {
   }, []);
 
   useEffect(() => {
-    if (getToken()) {
-      setTokenReady(true);
-      void load();
-    }
+    void (async () => {
+      if (await isAuthenticated()) {
+        setTokenReady(true);
+        await load();
+      }
+      setReady(true);
+    })();
   }, [load]);
 
-  const saveToken = () => {
-    setToken(tokenInput.trim());
-    setTokenReady(true);
-    void load();
+  const saveToken = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await login(tokenInput.trim());
+      setTokenReady(true);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const create = async () => {
@@ -71,6 +83,9 @@ export default function AdminApp() {
     }
   };
 
+  // Evita che la schermata di accesso lampeggi mentre il controllo è in corso.
+  if (!ready) return <main />;
+
   if (!tokenReady) {
     return (
       <main>
@@ -84,9 +99,10 @@ export default function AdminApp() {
             onChange={(e) => setTokenInput(e.target.value)}
           />
         </div>
-        <button onClick={saveToken} disabled={!tokenInput.trim()}>
-          Entra
+        <button onClick={saveToken} disabled={busy || !tokenInput.trim()}>
+          {busy ? 'Verifica…' : 'Entra'}
         </button>
+        {error && <p className="error">{error}</p>}
       </main>
     );
   }

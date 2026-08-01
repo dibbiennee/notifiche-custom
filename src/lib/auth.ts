@@ -22,6 +22,9 @@ export class NotFoundError extends Error {
   }
 }
 
+/** Nome del cookie di sessione, impostato dal server e non leggibile da JavaScript. */
+export const SESSION_COOKIE = 'notifiche_session';
+
 function equals(a: string, b: string): boolean {
   const bufA = Buffer.from(a);
   const bufB = Buffer.from(b);
@@ -29,18 +32,47 @@ function equals(a: string, b: string): boolean {
   return timingSafeEqual(bufA, bufB);
 }
 
-export function assertAuthorized(request: Request): void {
+/** Confronta un valore col token configurato, a tempo costante. */
+export function tokenMatches(candidate: string): boolean {
   const expected = process.env.APP_TOKEN;
   if (!expected) {
     throw new Error('APP_TOKEN non è configurato sul server');
   }
+  return equals(candidate, expected);
+}
 
-  const header = request.headers.get('authorization') ?? '';
-  const token = header.startsWith('Bearer ') ? header.slice('Bearer '.length) : '';
+function readCookie(request: Request, name: string): string {
+  const header = request.headers.get('cookie');
+  if (!header) return '';
 
-  if (!equals(token, expected)) {
-    throw new UnauthorizedError();
+  for (const part of header.split(';')) {
+    const separator = part.indexOf('=');
+    if (separator === -1) continue;
+    if (part.slice(0, separator).trim() === name) {
+      return decodeURIComponent(part.slice(separator + 1).trim());
+    }
   }
+  return '';
+}
+
+/**
+ * Accetta due forme di autenticazione:
+ * - `Authorization: Bearer <token>`, usata dagli script e dai test
+ * - il cookie di sessione, usato dal browser
+ *
+ * Il cookie esiste perché iOS cancella periodicamente lo storage scrivibile da
+ * JavaScript delle web app installate: con il token in localStorage la schermata
+ * di accesso ricompariva da sola. Un cookie impostato dal server con Set-Cookie
+ * non è soggetto a quella pulizia.
+ */
+export function assertAuthorized(request: Request): void {
+  const header = request.headers.get('authorization') ?? '';
+  const bearer = header.startsWith('Bearer ') ? header.slice('Bearer '.length) : '';
+
+  if (tokenMatches(bearer)) return;
+  if (tokenMatches(readCookie(request, SESSION_COOKIE))) return;
+
+  throw new UnauthorizedError();
 }
 
 /** Traduce gli errori noti in risposte HTTP. Tutto il resto diventa 500. */

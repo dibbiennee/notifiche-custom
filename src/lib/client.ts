@@ -1,25 +1,45 @@
 'use client';
 
-const TOKEN_KEY = 'notifiche:token';
+/**
+ * Il token non viene più tenuto in localStorage: iOS cancella periodicamente lo
+ * storage scrivibile da JavaScript delle web app installate sulla Home, e la
+ * schermata di accesso ricompariva da sola a ogni apertura. Ora l'accesso passa
+ * da /api/login/, che imposta un cookie HttpOnly lato server — non toccato da
+ * quella pulizia e nemmeno leggibile da JavaScript.
+ *
+ * Il cookie viaggia da solo con ogni fetch same-origin: qui non serve gestirlo.
+ */
 
-export function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return window.localStorage.getItem(TOKEN_KEY);
+export async function login(token: string): Promise<void> {
+  const response = await fetch('/api/login/', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+
+  if (!response.ok) {
+    throw new Error(response.status === 401 ? 'Token non valido' : `Errore ${response.status}`);
+  }
 }
 
-export function setToken(token: string): void {
-  window.localStorage.setItem(TOKEN_KEY, token);
+export async function isAuthenticated(): Promise<boolean> {
+  try {
+    const response = await fetch('/api/login/');
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function logout(): Promise<void> {
+  await fetch('/api/login/', { method: 'DELETE' }).catch(() => {});
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = getToken();
-  if (!token) throw new Error('Token mancante');
-
   const response = await fetch(path, {
     ...init,
     headers: {
       ...init.headers,
-      authorization: `Bearer ${token}`,
       ...(init.body ? { 'content-type': 'application/json' } : {}),
     },
   });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch, getToken, setToken } from '@/lib/client';
+import { apiFetch, isAuthenticated, login } from '@/lib/client';
 import type { Preset, ScheduledSend } from '@/lib/types';
 
 type Props = { preset: Preset; vapidPublicKey: string };
@@ -78,17 +78,28 @@ export default function PresetApp({ preset, vapidPublicKey }: Props) {
     setStandalone(isStandalone());
     setSupported('serviceWorker' in navigator && 'PushManager' in window);
     setSubscribed(typeof Notification !== 'undefined' && Notification.permission === 'granted');
-    if (getToken()) {
-      setTokenReady(true);
-      void loadScheduled();
-    }
-    setReady(true);
+
+    void (async () => {
+      if (await isAuthenticated()) {
+        setTokenReady(true);
+        await loadScheduled();
+      }
+      setReady(true);
+    })();
   }, [loadScheduled]);
 
-  const saveToken = () => {
-    setToken(tokenInput.trim());
-    setTokenReady(true);
-    void loadScheduled();
+  const saveToken = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await login(tokenInput.trim());
+      setTokenReady(true);
+      await loadScheduled();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   // requestPermission deve stare dentro un handler di click: iOS la ignora altrimenti.
@@ -225,9 +236,10 @@ export default function PresetApp({ preset, vapidPublicKey }: Props) {
             onChange={(e) => setTokenInput(e.target.value)}
           />
         </div>
-        <button onClick={saveToken} disabled={!tokenInput.trim()}>
-          Entra
+        <button onClick={saveToken} disabled={busy || !tokenInput.trim()}>
+          {busy ? 'Verifica…' : 'Entra'}
         </button>
+        {error && <p className="error">{error}</p>}
       </main>
     );
   }
