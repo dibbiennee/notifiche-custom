@@ -19,18 +19,22 @@ self.addEventListener('push', (event) => {
     data = {};
   }
 
+  // La forma della notifica la decide il payload, non questo file. Serve a poter
+  // provare le combinazioni di titolo e corpo senza rideployare ogni volta:
+  // `body` viene omesso del tutto se il payload non lo manda, che e' diverso
+  // dal mandarlo vuoto.
+  const options = {
+    // Su iOS icon e badge vengono ignorati: contano quelli della PWA installata.
+    // Restano qui perche' su Android e desktop funzionano.
+    icon: data.icon,
+    badge: data.icon,
+    tag: data.tag,
+    data: { url: data.url || '/' },
+  };
+  if (typeof data.body === 'string') options.body = data.body;
+
   event.waitUntil(
-    // Titolo vuoto di proposito: iOS mostra gia' il nome della PWA installata,
-    // e un titolo valorizzato aggiungerebbe una riga sopra a quello.
-    self.registration.showNotification('', {
-      body: data.body || '',
-      // Su iOS icon e badge vengono ignorati: contano quelli della PWA installata.
-      // Restano qui perché su Android e desktop funzionano.
-      icon: data.icon,
-      badge: data.icon,
-      tag: data.tag,
-      data: { url: data.url || '/' },
-    }),
+    self.registration.showNotification(typeof data.title === 'string' ? data.title : '', options),
   );
 });
 
