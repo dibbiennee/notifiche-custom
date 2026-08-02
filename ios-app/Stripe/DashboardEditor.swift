@@ -15,46 +15,46 @@ struct DashboardEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Intestazione") {
-                    LabeledContent("Nome") {
-                        TextField("Nome dell'attivita'", text: $store.simulation.merchantName)
+                Section("Header") {
+                    LabeledContent("Name") {
+                        TextField("Business name", text: $store.simulation.merchantName)
                             .multilineTextAlignment(.trailing)
                     }
-                    Menu("Nomi pronti") {
+                    Menu("Suggested names") {
                         ForEach(Simulation.suggestedNames, id: \.self) { name in
                             Button(name) { store.simulation.merchantName = name }
                         }
                     }
 
-                    Picker("Valuta", selection: $store.simulation.currency) {
+                    Picker("Currency", selection: $store.simulation.currency) {
                         ForEach(Simulation.Currency.allCases) { Text($0.title).tag($0) }
                     }
                 }
 
                 Section {
-                    DecimalField("Da", value: $store.simulation.dailyMin)
-                    DecimalField("A", value: $store.simulation.dailyMax)
+                    DecimalField("From", value: $store.simulation.dailyMin)
+                    DecimalField("To", value: $store.simulation.dailyMax)
                 } header: {
-                    Text("Incasso al giorno")
+                    Text("Daily revenue")
                 } footer: {
-                    Text("Ogni giornata pesca un importo a caso in questo intervallo. Da qui escono i totali dei due periodi, il grafico e la fascia in alto.")
+                    Text("Each day picks a random amount in this range. Everything else follows: both period totals, the charts and the band at the top.")
                 }
 
                 Section {
                     DecimalField(
-                        "Punta a",
+                        "Aim for",
                         value: Binding(
                             get: { store.simulation.todayTarget ?? 0 },
                             set: { store.simulation.todayTarget = $0 > 0 ? $0 : nil }
                         )
                     )
                     if store.simulation.todayTarget != nil {
-                        Button("Torna al caso") { store.simulation.todayTarget = nil }
+                        Button("Back to random") { store.simulation.todayTarget = nil }
                     }
                 } header: {
-                    Text("Solo oggi")
+                    Text("Today only")
                 } footer: {
-                    Text("A zero, oggi e' casuale come gli altri giorni. Mettendo una cifra, la giornata si riempie di pagamenti fino a quanto ci sta sotto quella soglia: il totale finisce appena sotto, perche' i tagli sono quelli che sono. Gli altri giorni non cambiano, quindi la settimana si aggiorna da sola.")
+                    Text("At zero, today is random like every other day. With an amount, the day fills with payments until they no longer fit under it, so the total lands just below — the prices are what they are. The other days stay put, so the week updates on its own.")
                 }
 
                 Section {
@@ -74,9 +74,9 @@ struct DashboardEditor: View {
                     }
 
                     HStack {
-                        TextField("altro importo", text: $customAmount)
+                        TextField("another amount", text: $customAmount)
                             .keyboardType(.decimalPad)
-                        Button("Aggiungi") {
+                        Button("Add") {
                             if let value = parseDecimal(customAmount), value > 0 {
                                 toggle(value)
                                 customAmount = ""
@@ -98,17 +98,17 @@ struct DashboardEditor: View {
                         .tint(.primary)
                     }
                 } header: {
-                    Text("Importi dei pagamenti")
+                    Text("Payment amounts")
                 } footer: {
-                    Text("La giornata si riempie sommando questi importi. E' anche il motivo per cui il numero di pagamenti e di clienti torna sempre con l'incasso.")
+                    Text("The cheapest is the entry product, the others are upsells. This is why payment and customer counts always add up to the revenue.")
                 }
 
                 Section {
-                    DecimalField("Netto piu' basso del", value: $store.simulation.netDeductionPercent)
+                    DecimalField("Net lower by %", value: $store.simulation.netDeductionPercent)
                 } header: {
-                    Text("Netto")
+                    Text("Net")
                 } footer: {
-                    Text("Quanto \"Net volume from sales\" scende rispetto al lordo.")
+                    Text("How far \"Net volume from sales\" sits below gross.")
                 }
 
                 Section {
@@ -127,37 +127,37 @@ struct DashboardEditor: View {
                         )
                     )
                 } header: {
-                    Text("Upsell, in percentuale")
+                    Text("Upsell rate, in percent")
                 } footer: {
-                    Text("Ogni cliente compra il prodotto piu' economico; questa e' la quota che aggiunge anche quello piu' caro. Cambia ogni giorno dentro l'intervallo, cosi' pagamenti e clienti non restano nella stessa proporzione: sarebbe la cosa che tradisce subito dei numeri inventati.")
+                    Text("Every customer buys the cheapest product; this is the share that also takes a pricier one. It changes daily within the range, so payments and customers never stay in a fixed ratio — that would be the first thing to give made-up numbers away.")
                 }
 
                 Section {
-                    LabeledContent("Attivita' aperta da") {
-                        Text("\(store.simulation.businessDays) giorni")
+                    LabeledContent("In business for") {
+                        Text("\(store.simulation.businessDays) days")
                             .foregroundStyle(.secondary)
                     }
                     Stepper(
-                        "Giorni",
+                        "Days",
                         value: $store.simulation.businessDays,
                         in: 7...3650,
                         step: 30
                     )
                     .labelsHidden()
                 } header: {
-                    Text("Storico")
+                    Text("History")
                 } footer: {
-                    Text("Serve solo al periodo ALL, che copre tutta la vita dell'attivita'.")
+                    Text("Only used by the ALL range, which covers the whole life of the business.")
                 }
 
                 Section {
                     anteprima
                 } header: {
-                    Text("Come viene oggi")
+                    Text("How today turns out")
                 }
 
                 Section {
-                    LabeledContent("Indirizzo") {
+                    LabeledContent("Address") {
                         TextField("notifiche-custom.vercel.app", text: $store.sync.baseURL)
                             .multilineTextAlignment(.trailing)
                             .textInputAutocapitalization(.never)
@@ -167,7 +167,7 @@ struct DashboardEditor: View {
                         SecureField("APP_TOKEN", text: $store.sync.token)
                             .multilineTextAlignment(.trailing)
                     }
-                    Button("Scarica dal server") {
+                    Button("Fetch from server") {
                         Task { await store.pull() }
                     }
                     .disabled(!store.sync.isConfigured)
@@ -178,23 +178,23 @@ struct DashboardEditor: View {
                             .foregroundStyle(.secondary)
                     }
                 } header: {
-                    Text("Sincronizzazione")
+                    Text("Sync")
                 } footer: {
-                    Text("Le stesse impostazioni della dashboard nel browser. Ogni modifica parte da sola dopo un attimo; all'avvio l'app scarica quelle del server.")
+                    Text("The same settings as the dashboard in the browser. Every change is sent after a moment; on launch the app fetches whatever the server has.")
                 }
 
                 Section {
-                    Button("Rigenera i numeri") { store.regenerate() }
-                    Button("Ripristina le impostazioni", role: .destructive) { store.reset() }
+                    Button("Regenerate the numbers") { store.regenerate() }
+                    Button("Reset settings", role: .destructive) { store.reset() }
                 } footer: {
-                    Text("Rigenera cambia tutte le cifre lasciando gli intervalli come li hai messi.")
+                    Text("Regenerate changes every figure while keeping the ranges you set.")
                 }
             }
-            .navigationTitle("Simulazione")
+            .navigationTitle("Simulation")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fine") { dismiss() }
+                    Button("Done") { dismiss() }
                 }
             }
         }
@@ -209,12 +209,12 @@ struct DashboardEditor: View {
         let symbol = simulation.currency.reportSymbol
 
         return Group {
-            LabeledContent("Incasso di oggi", value: money(oggi.gross, symbol: symbol))
-            LabeledContent("Pagamenti", value: String(oggi.paymentCount))
-            LabeledContent("Clienti", value: String(simulation.customerCount(oggi)))
+            LabeledContent("Revenue today", value: money(oggi.gross, symbol: symbol))
+            LabeledContent("Payments", value: String(oggi.paymentCount))
+            LabeledContent("Customers", value: String(simulation.customerCount(oggi)))
             if let gross = dashboard.reports.first {
-                LabeledContent("Totale \(store.period.rawValue)", value: money(gross.currentTotal, symbol: symbol))
-                LabeledContent("Variazione", value: gross.delta.map(percent) ?? "—")
+                LabeledContent("\(store.period.rawValue) total", value: money(gross.currentTotal, symbol: symbol))
+                LabeledContent("Change", value: gross.delta.map(percent) ?? "—")
             }
         }
         .foregroundStyle(.secondary)

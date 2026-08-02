@@ -77,9 +77,9 @@ struct Simulation: Codable, Equatable {
 
         var title: String {
             switch self {
-            case .usd: return "Dollaro"
+            case .usd: return "Dollar"
             case .eur: return "Euro"
-            case .gbp: return "Sterlina"
+            case .gbp: return "Pound"
             case .aed: return "Dirham (AED)"
             }
         }

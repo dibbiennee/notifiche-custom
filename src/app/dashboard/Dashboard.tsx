@@ -78,7 +78,7 @@ export default function Dashboard() {
       <div className={styles.app}>
         <div className={styles.login}>
           <div className={styles.loginCard}>
-            <h2>Accesso</h2>
+            <h2>Sign in</h2>
             <div className={styles.field}>
               <label htmlFor="token">Token</label>
               <input
@@ -100,7 +100,7 @@ export default function Dashboard() {
                 }
               }}
             >
-              Entra
+              Enter
             </button>
             {error && <p className={styles.error}>{error}</p>}
           </div>
@@ -589,14 +589,14 @@ function SettingsPanel({
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.panel} onClick={(e) => e.stopPropagation()}>
-        <h2>Simulazione</h2>
+        <h2>Simulation</h2>
         <p className={styles.panelHint}>
-          Le stesse impostazioni della app iOS: si salvano sul server, e il telefono le trova già
-          cambiate.
+          The same settings as the iOS app: they are saved to the server, and the phone finds
+          them already changed.
         </p>
 
         <div className={styles.field}>
-          <label htmlFor="name">Nome</label>
+          <label htmlFor="name">Name</label>
           <input
             id="name"
             value={draft.merchantName}
@@ -612,22 +612,22 @@ function SettingsPanel({
         </div>
 
         <div className={styles.field}>
-          <label htmlFor="currency">Valuta</label>
+          <label htmlFor="currency">Currency</label>
           <select
             id="currency"
             value={draft.currency}
             onChange={(e) => set('currency', e.target.value as Currency)}
           >
-            <option value="usd">Dollaro</option>
+            <option value="usd">Dollar</option>
             <option value="eur">Euro</option>
-            <option value="gbp">Sterlina</option>
+            <option value="gbp">Pound</option>
             <option value="aed">Dirham (AED)</option>
           </select>
         </div>
 
         <div className={styles.pair}>
           <div className={styles.field}>
-            <label htmlFor="min">Incasso al giorno, da</label>
+            <label htmlFor="min">Daily revenue, from</label>
             <input
               id="min"
               type="number"
@@ -636,7 +636,7 @@ function SettingsPanel({
             />
           </div>
           <div className={styles.field}>
-            <label htmlFor="max">a</label>
+            <label htmlFor="max">to</label>
             <input
               id="max"
               type="number"
@@ -647,7 +647,7 @@ function SettingsPanel({
         </div>
 
         <div className={styles.field}>
-          <label htmlFor="today">Solo oggi: punta a (0 = casuale)</label>
+          <label htmlFor="today">Today only: aim for (0 = random)</label>
           <input
             id="today"
             type="number"
@@ -659,7 +659,7 @@ function SettingsPanel({
         </div>
 
         <div className={styles.field}>
-          <label>Importi dei pagamenti</label>
+          <label>Payment amounts</label>
           <div className={styles.amounts}>
             {PRESET_AMOUNTS.map((amount) => (
               <button
@@ -675,7 +675,7 @@ function SettingsPanel({
 
         <div className={styles.pair}>
           <div className={styles.field}>
-            <label htmlFor="net">Netto più basso del %</label>
+            <label htmlFor="net">Net lower by %</label>
             <input
               id="net"
               type="number"
@@ -684,7 +684,7 @@ function SettingsPanel({
             />
           </div>
           <div className={styles.field}>
-            <label htmlFor="repeatMin">Upsell da %</label>
+            <label htmlFor="repeatMin">Upsell from %</label>
             <input
               id="repeatMin"
               type="number"
@@ -693,7 +693,7 @@ function SettingsPanel({
             />
           </div>
           <div className={styles.field}>
-            <label htmlFor="repeatMax">a %</label>
+            <label htmlFor="repeatMax">to %</label>
             <input
               id="repeatMax"
               type="number"
@@ -704,7 +704,7 @@ function SettingsPanel({
         </div>
 
         <div className={styles.field}>
-          <label htmlFor="days">Attività aperta da (giorni)</label>
+          <label htmlFor="days">In business for (days)</label>
           <input
             id="days"
             type="number"
@@ -718,7 +718,7 @@ function SettingsPanel({
             className={styles.ghostButton}
             onClick={() => set('seed', Math.floor(Math.random() * 1_000_000_000))}
           >
-            Rigenera i numeri
+            Regenerate the numbers
           </button>
           <button
             className={styles.primaryButton}
@@ -727,7 +727,7 @@ function SettingsPanel({
               onClose();
             }}
           >
-            Salva
+            Save
           </button>
         </div>
       </div>

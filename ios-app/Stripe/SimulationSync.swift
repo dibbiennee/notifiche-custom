@@ -26,8 +26,8 @@ enum SyncError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .notConfigured: return "Indirizzo o token mancanti."
-        case .badResponse(let code): return code == 401 ? "Token rifiutato." : "Il server ha risposto \(code)."
+        case .notConfigured: return "Address or token missing."
+        case .badResponse(let code): return code == 401 ? "Token rejected." : "The server answered \(code)."
         }
     }
 }

@@ -76,7 +76,7 @@ final class DashboardStore: ObservableObject {
                 simulation = remote
                 pushTask?.cancel()
             }
-            syncMessage = "Allineato col server."
+            syncMessage = "In sync with the server."
         } catch {
             syncMessage = error.localizedDescription
         }
@@ -111,7 +111,7 @@ final class DashboardStore: ObservableObject {
             guard !Task.isCancelled else { return }
             do {
                 try await SimulationSync.push(current, settings)
-                await MainActor.run { self?.syncMessage = "Salvato sul server." }
+                await MainActor.run { self?.syncMessage = "Saved to the server." }
             } catch {
                 await MainActor.run { self?.syncMessage = error.localizedDescription }
             }
