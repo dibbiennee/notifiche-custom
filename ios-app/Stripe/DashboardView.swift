@@ -7,6 +7,11 @@ struct DashboardView: View {
     @State private var showComposer = false
     @State private var showEditor = false
 
+    /// Quanto e' stata tirata giu' la lista. Serve perche' l'anello deve
+    /// vedersi gia' mentre trascini, non solo dopo aver mollato: negli
+    /// screenshot di riferimento compare a meta' gesto, col dito ancora giu'.
+    @State private var pull: CGFloat = 0
+
     private var data: Dashboard { store.dashboard }
 
     var body: some View {
@@ -15,6 +20,14 @@ struct DashboardView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    GeometryReader { geo in
+                        Color.clear.preference(
+                            key: PullOffset.self,
+                            value: geo.frame(in: .named("pull")).minY
+                        )
+                    }
+                    .frame(height: 0)
+
                     Text("Today")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(Theme.primaryText)
@@ -43,10 +56,16 @@ struct DashboardView: View {
             // La rotella di sistema resta a gestire il gesto ma non si vede:
             // al suo posto, nello spazio che apre, va la nostra. Il centro
             // sta 26pt sotto l'intestazione, come nello screenshot.
+            .coordinateSpace(name: "pull")
+            .onPreferenceChange(PullOffset.self) { pull = $0 }
             .overlay(alignment: .top) {
-                if store.isRefreshing {
+                // Mentre si trascina l'anello scende insieme al contenuto e si
+                // fa via via piu' visibile; quando la ricarica parte si ferma
+                // dove lo tiene il gesto di sistema, 26pt sotto l'intestazione.
+                if store.isRefreshing || pull > 6 {
                     StripeSpinner()
-                        .padding(.top, 17)
+                        .opacity(store.isRefreshing ? 1 : min(1, Double(pull) / 60))
+                        .padding(.top, store.isRefreshing ? 17 : max(4, pull / 2 - 9))
                 }
             }
             .refreshable { await store.refresh() }
@@ -253,5 +272,14 @@ private struct ReportCard: View {
                 .padding(.top, 11)
                 .padding(.horizontal, 3)
         }
+    }
+}
+
+
+/// Quanto e' stata tirata giu' la lista, letta dall'alto del contenuto.
+private struct PullOffset: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
