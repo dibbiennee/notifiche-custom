@@ -183,7 +183,9 @@ struct DashboardView: View {
                                     .font(.system(size: 14))
                                     .foregroundStyle(Theme.primaryText)
                                 Text(item.value)
-                                    .font(.system(size: 20))
+                                    // Semibold, non regular: misurato sullo
+                                    // spessore del tratto, 8px contro 6.
+                                    .font(.system(size: 20, weight: .semibold))
                                     .foregroundStyle(Theme.primaryText)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.6)
