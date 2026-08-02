@@ -120,6 +120,33 @@ struct DashboardEditor: View {
                 }
 
                 Section {
+                    LabeledContent("Indirizzo") {
+                        TextField("notifiche-custom.vercel.app", text: $store.sync.baseURL)
+                            .multilineTextAlignment(.trailing)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                    LabeledContent("Token") {
+                        SecureField("APP_TOKEN", text: $store.sync.token)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    Button("Scarica dal server") {
+                        Task { await store.pull() }
+                    }
+                    .disabled(!store.sync.isConfigured)
+
+                    if !store.syncMessage.isEmpty {
+                        Text(store.syncMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("Sincronizzazione")
+                } footer: {
+                    Text("Le stesse impostazioni della dashboard nel browser. Ogni modifica parte da sola dopo un attimo; all'avvio l'app scarica quelle del server.")
+                }
+
+                Section {
                     Button("Rigenera i numeri") { store.regenerate() }
                     Button("Ripristina le impostazioni", role: .destructive) { store.reset() }
                 } footer: {

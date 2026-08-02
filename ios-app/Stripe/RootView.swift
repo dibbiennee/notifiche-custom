@@ -49,10 +49,10 @@ struct RootView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
         }
         .environmentObject(store)
-        .preferredColorScheme(.dark)
         .task {
             _ = try? await UNUserNotificationCenter.current()
                 .requestAuthorization(options: [.alert, .sound, .badge])
+            await store.pull()
         }
     }
 

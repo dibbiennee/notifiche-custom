@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import type { Simulation } from './simulation';
 import type { IconSet, IconSize, Preset, ScheduledSend, SubscriptionRecord } from './types';
 
 export type { IconSet, IconSize, Preset, ScheduledSend, SubscriptionRecord } from './types';
@@ -25,6 +26,12 @@ export interface Store {
   getScheduled(id: string): Promise<ScheduledSend | null>;
   addScheduled(send: ScheduledSend): Promise<void>;
   removeScheduled(id: string): Promise<void>;
+
+  /** Le impostazioni della dashboard. Sono una sola: la app iOS e il browser
+   *  leggono e scrivono la stessa riga, ed è quello che tiene allineati i
+   *  numeri fra i due. */
+  getSimulation(): Promise<Simulation | null>;
+  setSimulation(simulation: Simulation): Promise<void>;
 }
 
 const byCreatedAt = (a: Preset, b: Preset) => a.createdAt - b.createdAt;
@@ -36,6 +43,7 @@ export function createMemoryStore(): Store {
   const iconsBySlug = new Map<string, IconSet>();
   const subs = new Map<string, SubscriptionRecord[]>();
   const scheduled = new Map<string, ScheduledSend>();
+  let simulation: Simulation | null = null;
 
   return {
     async listPresets() {
@@ -85,11 +93,19 @@ export function createMemoryStore(): Store {
     async removeScheduled(id) {
       scheduled.delete(id);
     },
+
+    async getSimulation() {
+      return simulation;
+    },
+    async setSimulation(next) {
+      simulation = next;
+    },
   };
 }
 
 const PRESETS_KEY = 'presets';
 const SCHEDULED_INDEX_KEY = 'sched:index';
+const SIMULATION_KEY = 'simulation';
 
 /** Implementazione su Upstash Redis, usata in produzione. */
 export function createRedisStore(): Store {
@@ -163,6 +179,13 @@ export function createRedisStore(): Store {
     },
     async removeScheduled(id) {
       await Promise.all([redis.del(scheduledKey(id)), redis.zrem(SCHEDULED_INDEX_KEY, id)]);
+    },
+
+    async getSimulation() {
+      return (await redis.get<Simulation>(SIMULATION_KEY)) ?? null;
+    },
+    async setSimulation(simulation) {
+      await redis.set(SIMULATION_KEY, simulation);
     },
   };
 }

@@ -3,7 +3,7 @@ import Foundation
 /// I pochi numeri che imposti tu. Tutto il resto della dashboard, fino
 /// all'ultima cifra del grafico, viene calcolato da qui: cosi' non esistono
 /// due valori che possono contraddirsi.
-struct Simulation: Codable {
+struct Simulation: Codable, Equatable {
     var merchantName = "Digital Consult LLC"
     var currency = Currency.usd
 
