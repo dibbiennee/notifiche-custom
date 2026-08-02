@@ -25,6 +25,9 @@ export interface Simulation {
    *  dopo quello base. Opzionali per non rompere i salvataggi vecchi. */
   repeatMinPercent?: number;
   repeatMaxPercent?: number;
+  /** Se valorizzato, l'incasso di oggi punta a questa cifra invece di essere
+   *  pescato a caso. Gli altri giorni non cambiano. */
+  todayTarget?: number;
   businessDays: number;
   /** Resta sotto 2^53: oltre, JSON e JavaScript lo arrotonderebbero e il
    *  telefono e il browser genererebbero numeri diversi. */
@@ -122,7 +125,11 @@ export function day(simulation: Simulation, offset: number): SimulatedDay {
   const blockRng = new SeededRandom((BigInt(simulation.seed) + BigInt(block) * 2654435761n) & MASK);
   const centre = 0.25 + 0.5 * blockRng.double();
   const spread = (rng.double() - 0.5) * 0.4;
-  const target = low + Math.min(1, Math.max(0, centre + spread)) * (high - low);
+
+  // Le estrazioni sopra avvengono comunque, anche quando oggi e' fissato:
+  // saltarle sposterebbe il flusso del generatore e cambierebbe i giorni dopo.
+  const casuale = low + Math.min(1, Math.max(0, centre + spread)) * (high - low);
+  const target = offset === 0 && simulation.todayTarget ? simulation.todayTarget : casuale;
 
   // La quota di upsell del giorno, dal suo generatore: cosi' il flusso
   // principale resta identico fra TypeScript e Swift.

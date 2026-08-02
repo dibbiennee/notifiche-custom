@@ -647,6 +647,18 @@ function SettingsPanel({
         </div>
 
         <div className={styles.field}>
+          <label htmlFor="today">Solo oggi: punta a (0 = casuale)</label>
+          <input
+            id="today"
+            type="number"
+            value={draft.todayTarget ?? 0}
+            onChange={(e) =>
+              set('todayTarget', Number(e.target.value) > 0 ? Number(e.target.value) : undefined)
+            }
+          />
+        </div>
+
+        <div className={styles.field}>
           <label>Importi dei pagamenti</label>
           <div className={styles.amounts}>
             {PRESET_AMOUNTS.map((amount) => (

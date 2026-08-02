@@ -41,6 +41,23 @@ struct DashboardEditor: View {
                 }
 
                 Section {
+                    DecimalField(
+                        "Punta a",
+                        value: Binding(
+                            get: { store.simulation.todayTarget ?? 0 },
+                            set: { store.simulation.todayTarget = $0 > 0 ? $0 : nil }
+                        )
+                    )
+                    if store.simulation.todayTarget != nil {
+                        Button("Torna al caso") { store.simulation.todayTarget = nil }
+                    }
+                } header: {
+                    Text("Solo oggi")
+                } footer: {
+                    Text("A zero, oggi e' casuale come gli altri giorni. Mettendo una cifra, la giornata si riempie di pagamenti fino a quanto ci sta sotto quella soglia: il totale finisce appena sotto, perche' i tagli sono quelli che sono. Gli altri giorni non cambiano, quindi la settimana si aggiorna da sola.")
+                }
+
+                Section {
                     ForEach(preset, id: \.self) { amount in
                         Button {
                             toggle(amount)

@@ -37,6 +37,7 @@ function readSimulation(body: unknown): Simulation {
     netDeductionPercent: body.netDeductionPercent ?? 2,
     repeatMinPercent: body.repeatMinPercent ?? 40,
     repeatMaxPercent: body.repeatMaxPercent ?? 80,
+    todayTarget: typeof body.todayTarget === 'number' && body.todayTarget > 0 ? body.todayTarget : undefined,
     businessDays: Math.max(2, Math.round(body.businessDays ?? 400)),
     seed: body.seed,
   };

@@ -35,6 +35,12 @@ struct Simulation: Codable, Equatable {
         return (min(low, high), max(low, high))
     }
 
+    /// Se valorizzato, l'incasso di oggi non viene pescato a caso ma punta a
+    /// questa cifra. Gli altri giorni restano come sono, quindi la settimana si
+    /// aggiorna da sola. Il totale esatto dipende dai tagli disponibili: la
+    /// giornata si riempie finche' ci sta, quindi arriva appena sotto.
+    var todayTarget: Double?
+
     /// Da quanti giorni l'attivita' e' aperta: serve solo alla voce ALL.
     var businessDays: Int = 400
 
@@ -138,7 +144,12 @@ extension Simulation {
         var blockRng = SeededRandom(seed &+ UInt64(bitPattern: Int64(block) &* 2_654_435_761))
         let centre = 0.25 + 0.5 * blockRng.double()
         let spread = (rng.double() - 0.5) * 0.4
-        let target = low + min(1, max(0, centre + spread)) * (high - low)
+
+        // Le estrazioni sopra avvengono comunque, anche quando oggi e' fissato:
+        // saltarle sposterebbe tutto il flusso del generatore e cambierebbe le
+        // giornate successive.
+        let casuale = low + min(1, max(0, centre + spread)) * (high - low)
+        let target = (offset == 0 ? todayTarget : nil) ?? casuale
 
         // La quota di upsell del giorno, dal suo generatore: cosi' il flusso
         // principale resta identico fra Swift e TypeScript.
