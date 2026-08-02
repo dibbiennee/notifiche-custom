@@ -6,6 +6,7 @@ import SwiftUI
 struct ReportChart: View {
     let previous: [Double]
     let current: [Double]
+    let symbol: String
 
     private let badgeStrip: CGFloat = 16
     private let plotHeight: CGFloat = 100
@@ -111,7 +112,7 @@ struct ReportChart: View {
 
         func place(_ series: [Double], _ index: Int?, _ color: Color) {
             guard let index, let p = point(series, index, width: width, scale: scale) else { return }
-            let text = money(series[index])
+            let text = money(series[index], symbol: symbol)
             let estimated = CGFloat(text.count) * 6.6 + 10
             let home = min(max(0, p.x - estimated / 2), max(0, width - estimated))
 

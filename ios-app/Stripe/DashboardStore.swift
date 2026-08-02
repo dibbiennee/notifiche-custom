@@ -1,35 +1,47 @@
 import Foundation
 
-/// Tiene i dati della dashboard e li scrive su disco a ogni modifica. Il
-/// salvataggio e' immediato di proposito: il form non ha un tasto "salva", e
-/// quello che si vede deve restare anche chiudendo l'app.
+/// Tiene la simulazione e il periodo scelto, e li salva a ogni modifica. La
+/// dashboard non e' salvata: si ricalcola, perche' e' solo una lettura di
+/// questi due valori.
 @MainActor
 final class DashboardStore: ObservableObject {
-    @Published var data: DashboardData {
-        didSet { save() }
-    }
+    @Published var simulation: Simulation { didSet { save() } }
+    @Published var period: Period { didSet { save() } }
 
-    private let key = "dashboard.data"
+    private let simulationKey = "dashboard.simulation"
+    private let periodKey = "dashboard.period"
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
 
-        if let raw = defaults.data(forKey: key),
-           let decoded = try? JSONDecoder().decode(DashboardData.self, from: raw) {
-            data = decoded
+        if let raw = defaults.data(forKey: simulationKey),
+           let decoded = try? JSONDecoder().decode(Simulation.self, from: raw) {
+            simulation = decoded
         } else {
-            data = .mock
+            simulation = Simulation()
         }
+
+        period = defaults.string(forKey: periodKey).flatMap(Period.init(rawValue:)) ?? .week
     }
 
-    /// Rimette i numeri dello screenshot di riferimento.
+    var dashboard: Dashboard {
+        Dashboard(simulation: simulation, period: period)
+    }
+
+    /// Rifa' tutti i numeri lasciando invariate le impostazioni.
+    func regenerate() {
+        simulation.seed = UInt64.random(in: 1...UInt64.max)
+    }
+
     func reset() {
-        data = .mock
+        simulation = Simulation()
     }
 
     private func save() {
-        guard let raw = try? JSONEncoder().encode(data) else { return }
-        defaults.set(raw, forKey: key)
+        if let raw = try? JSONEncoder().encode(simulation) {
+            defaults.set(raw, forKey: simulationKey)
+        }
+        defaults.set(period.rawValue, forKey: periodKey)
     }
 }

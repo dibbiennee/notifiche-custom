@@ -1,260 +1,177 @@
 import SwiftUI
 
-/// Il form che riscrive la dashboard. Non ha un tasto "salva": ogni modifica
-/// va a segno subito, e "Fine" chiude e basta.
+/// Le impostazioni della simulazione. Non ci sono piu' totali, date o valori
+/// del grafico da scrivere: quelli si calcolano, ed e' il motivo per cui non
+/// possono piu' contraddirsi fra loro.
 struct DashboardEditor: View {
     @EnvironmentObject private var store: DashboardStore
     @Environment(\.dismiss) private var dismiss
+
+    /// Gli stessi importi che si scelgono per le notifiche.
+    private let preset = PRESET_AMOUNTS.compactMap(Double.init)
+
+    @State private var customAmount = ""
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Intestazione") {
                     LabeledContent("Nome") {
-                        TextField("Nome dell'attivita'", text: $store.data.merchantName)
+                        TextField("Nome dell'attivita'", text: $store.simulation.merchantName)
                             .multilineTextAlignment(.trailing)
                     }
-                    LabeledContent("Titolo") {
-                        TextField("Today", text: $store.data.todayTitle)
-                            .multilineTextAlignment(.trailing)
+                    Menu("Nomi pronti") {
+                        ForEach(Simulation.suggestedNames, id: \.self) { name in
+                            Button(name) { store.simulation.merchantName = name }
+                        }
+                    }
+
+                    Picker("Valuta", selection: $store.simulation.currency) {
+                        ForEach(Simulation.Currency.allCases) { Text($0.title).tag($0) }
                     }
                 }
 
                 Section {
-                    ForEach($store.data.pages) { $page in
-                        NavigationLink {
-                            StatPageEditor(page: $page)
-                        } label: {
-                            Text(page.items.map(\.label).joined(separator: " · "))
-                                .lineLimit(1)
-                        }
-                    }
-                    .onDelete { store.data.pages.remove(atOffsets: $0) }
-
-                    Button("Aggiungi pagina") {
-                        store.data.pages.append(.empty())
-                    }
+                    DecimalField("Da", value: $store.simulation.dailyMin)
+                    DecimalField("A", value: $store.simulation.dailyMax)
                 } header: {
-                    Text("Fascia del giorno")
+                    Text("Incasso al giorno")
                 } footer: {
-                    Text("Ogni pagina e' una schermata del carosello. I valori sono testo libero: ci puoi scrivere un importo o un conteggio.")
+                    Text("Ogni giornata pesca un importo a caso in questo intervallo. Da qui escono i totali dei due periodi, il grafico e la fascia in alto.")
                 }
 
                 Section {
-                    ForEach($store.data.reports) { $report in
-                        NavigationLink {
-                            ReportEditor(
-                                report: $report,
-                                sourceTitle: store.data.sourceTitle(for: report),
-                                resolved: store.data.resolved(report),
-                                candidates: store.data.reports.filter {
-                                    $0.id != report.id && $0.derivedFrom == nil
-                                }.map { ($0.id, $0.title) }
-                            )
+                    ForEach(preset, id: \.self) { amount in
+                        Button {
+                            toggle(amount)
                         } label: {
-                            LabeledContent(report.title, value: money(store.data.resolved(report).currentTotal))
+                            HStack {
+                                Text(money(amount, symbol: store.simulation.currency.reportSymbol))
+                                Spacer()
+                                if store.simulation.paymentAmounts.contains(amount) {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
                         }
+                        .tint(.primary)
                     }
-                    .onDelete { store.data.reports.remove(atOffsets: $0) }
-                    .onMove { store.data.reports.move(fromOffsets: $0, toOffset: $1) }
 
-                    Button("Aggiungi report") {
-                        store.data.reports.append(.empty())
+                    HStack {
+                        TextField("altro importo", text: $customAmount)
+                            .keyboardType(.decimalPad)
+                        Button("Aggiungi") {
+                            if let value = parseDecimal(customAmount), value > 0 {
+                                toggle(value)
+                                customAmount = ""
+                            }
+                        }
+                        .disabled(parseDecimal(customAmount).map { $0 <= 0 } ?? true)
+                    }
+
+                    ForEach(extra, id: \.self) { amount in
+                        Button {
+                            toggle(amount)
+                        } label: {
+                            HStack {
+                                Text(money(amount, symbol: store.simulation.currency.reportSymbol))
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                        .tint(.primary)
                     }
                 } header: {
-                    Text("Reports")
+                    Text("Importi dei pagamenti")
+                } footer: {
+                    Text("La giornata si riempie sommando questi importi. E' anche il motivo per cui il numero di pagamenti e di clienti torna sempre con l'incasso.")
                 }
 
                 Section {
-                    Button("Ripristina i dati di esempio", role: .destructive) {
-                        store.reset()
+                    DecimalField("Netto piu' basso del", value: $store.simulation.netDeductionPercent)
+                    DecimalField("Clienti che ricomprano", value: $store.simulation.repeatCustomerPercent)
+                } header: {
+                    Text("Percentuali")
+                } footer: {
+                    Text("La prima e' quanto \"Net volume from sales\" scende rispetto al lordo. La seconda toglie clienti rispetto ai pagamenti: a zero, ogni pagamento e' un cliente nuovo.")
+                }
+
+                Section {
+                    LabeledContent("Attivita' aperta da") {
+                        Text("\(store.simulation.businessDays) giorni")
+                            .foregroundStyle(.secondary)
                     }
+                    Stepper(
+                        "Giorni",
+                        value: $store.simulation.businessDays,
+                        in: 7...3650,
+                        step: 30
+                    )
+                    .labelsHidden()
+                } header: {
+                    Text("Storico")
+                } footer: {
+                    Text("Serve solo al periodo ALL, che copre tutta la vita dell'attivita'.")
+                }
+
+                Section {
+                    anteprima
+                } header: {
+                    Text("Come viene oggi")
+                }
+
+                Section {
+                    Button("Rigenera i numeri") { store.regenerate() }
+                    Button("Ripristina le impostazioni", role: .destructive) { store.reset() }
+                } footer: {
+                    Text("Rigenera cambia tutte le cifre lasciando gli intervalli come li hai messi.")
                 }
             }
-            .navigationTitle("Dashboard")
+            .navigationTitle("Simulazione")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { EditButton() }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Fine") { dismiss() }
                 }
             }
         }
     }
-}
 
-/// Le tre cifre di una pagina del carosello.
-private struct StatPageEditor: View {
-    @Binding var page: StatPage
+    /// Il riepilogo serve a vedere subito l'effetto di una modifica, senza
+    /// chiudere il form.
+    private var anteprima: some View {
+        let simulation = store.simulation
+        let oggi = simulation.day(0)
+        let dashboard = store.dashboard
+        let symbol = simulation.currency.reportSymbol
 
-    var body: some View {
-        Form {
-            ForEach($page.items) { $item in
-                Section {
-                    LabeledContent("Etichetta") {
-                        TextField("Gross volume", text: $item.label)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    LabeledContent("Valore") {
-                        TextField("US$0.00", text: $item.value)
-                            .multilineTextAlignment(.trailing)
-                    }
-                }
+        return Group {
+            LabeledContent("Incasso di oggi", value: money(oggi.gross, symbol: symbol))
+            LabeledContent("Pagamenti", value: String(oggi.paymentCount))
+            LabeledContent("Clienti", value: String(simulation.customerCount(oggi)))
+            if let gross = dashboard.reports.first {
+                LabeledContent("Totale \(store.period.rawValue)", value: money(gross.currentTotal, symbol: symbol))
+                LabeledContent("Variazione", value: gross.delta.map(percent) ?? "—")
             }
-            .onDelete { page.items.remove(atOffsets: $0) }
-
-            Section {
-                Button("Aggiungi cifra") {
-                    page.items.append(StatItem(label: "Etichetta", value: "0"))
-                }
-            } footer: {
-                Text("Nella fascia ci stanno bene tre cifre. Oltre, il testo si rimpicciolisce per rientrare.")
-            }
-        }
-        .navigationTitle("Pagina")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-/// Un report: i due totali, i due intervalli di date e le due serie di valori.
-private struct ReportEditor: View {
-    @Binding var report: Report
-    let sourceTitle: String?
-    let resolved: Report
-
-    /// Gli altri report a cui questo si puo' agganciare. Esclude quelli gia'
-    /// derivati: una catena di derivazioni non aggiungerebbe niente e
-    /// potrebbe chiudersi ad anello.
-    let candidates: [(id: UUID, title: String)]
-
-    var body: some View {
-        Form {
-            Section("Titolo") {
-                TextField("Gross volume", text: $report.title)
-            }
-
-            if let sourceTitle {
-                derivedSections(sourceTitle: sourceTitle)
-            } else {
-                ownSections
-            }
-        }
-        .navigationTitle(report.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            // Le due serie devono avere la stessa lunghezza: se un salvataggio
-            // vecchio le ha lasciate diverse, qui si rimettono in riga.
-            if report.previousSeries.count != report.currentSeries.count {
-                report.resize(to: rowCount)
-            }
-        }
-    }
-
-    /// Un report agganciato a un altro non ha numeri propri da mostrare: si
-    /// regola solo di quanto scende rispetto alla sorgente.
-    @ViewBuilder
-    private func derivedSections(sourceTitle: String) -> some View {
-        Section {
-            LabeledContent("Sorgente", value: sourceTitle)
-            DecimalField("Sconto %", value: $report.deductionPercent)
-
-            Button("Scollega e rendi modificabile") {
-                report.previousTotal = resolved.previousTotal
-                report.currentTotal = resolved.currentTotal
-                report.previousSeries = resolved.previousSeries
-                report.currentSeries = resolved.currentSeries
-                report.previousRange = resolved.previousRange
-                report.currentRange = resolved.currentRange
-                report.derivedFrom = nil
-            }
-        } header: {
-            Text("Calcolato")
-        } footer: {
-            Text("Questo report non si scrive: e' \(sourceTitle) meno lo sconto. Cambia i numeri li' sopra e qui seguono da soli, grafico compreso.")
-        }
-
-        Section("Risultato") {
-            LabeledContent("Totale precedente", value: money(resolved.previousTotal))
-            LabeledContent("Totale corrente", value: money(resolved.currentTotal))
-            LabeledContent("Variazione", value: resolved.delta.map(percent) ?? "—")
         }
         .foregroundStyle(.secondary)
     }
 
-    @ViewBuilder
-    private var ownSections: some View {
-            Section {
-                DecimalField("Totale", value: $report.previousTotal)
-                LabeledContent("Date") {
-                    TextField("19 Jul – 25 Jul 2026", text: $report.previousRange)
-                        .multilineTextAlignment(.trailing)
-                }
-                Button("Usa la somma dei valori") {
-                    report.previousTotal = report.previousSeries.reduce(0, +)
-                }
-            } header: {
-                Text("Periodo precedente")
-            }
-
-            Section {
-                DecimalField("Totale", value: $report.currentTotal)
-                LabeledContent("Date") {
-                    TextField("26 Jul – Today", text: $report.currentRange)
-                        .multilineTextAlignment(.trailing)
-                }
-                Button("Usa la somma dei valori") {
-                    report.currentTotal = report.currentSeries.reduce(0, +)
-                }
-            } header: {
-                Text("Periodo corrente")
-            }
-
-            Section {
-                LabeledContent("Variazione", value: report.delta.map(percent) ?? "—")
-            } footer: {
-                Text("La pastiglia colorata non si scrive: e' il rapporto fra i due totali. Rossa se il corrente e' piu' basso.")
-            }
-
-            Section {
-                Stepper(
-                    "\(rowCount) rilevazioni",
-                    value: Binding(get: { rowCount }, set: { report.resize(to: $0) }),
-                    in: 2...31
-                )
-
-                ForEach(0..<rowCount, id: \.self) { index in
-                    HStack(spacing: 10) {
-                        Text("\(index + 1)")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 18, alignment: .leading)
-
-                        DecimalInput(value: $report.previousSeries[index], placeholder: "prec.")
-                        DecimalInput(value: $report.currentSeries[index], placeholder: "corr.")
-                    }
-                }
-            } header: {
-                Text("Valori del grafico")
-            } footer: {
-                Text("A sinistra la spezzata grigia, a destra quella viola. Le etichette sul grafico escono da qui: massimo, minimo e punto finale sono calcolati.")
-            }
-
-            if !candidates.isEmpty {
-                Section {
-                    ForEach(candidates, id: \.id) { candidate in
-                        Button("Calcola da \(candidate.title)") {
-                            report.derivedFrom = candidate.id
-                            report.deductionPercent = 2
-                        }
-                    }
-                } footer: {
-                    Text("Agganciandolo, questo report smette di avere numeri suoi: diventa quello scelto meno una percentuale, grafico compreso.")
-                }
-            }
+    /// Gli importi aggiunti a mano, cioe' quelli scelti che non stanno fra i
+    /// preset.
+    private var extra: [Double] {
+        store.simulation.paymentAmounts.filter { !preset.contains($0) }.sorted()
     }
 
-    private var rowCount: Int {
-        min(report.previousSeries.count, report.currentSeries.count)
+    private func toggle(_ amount: Double) {
+        if let index = store.simulation.paymentAmounts.firstIndex(of: amount) {
+            // L'ultimo non si toglie: senza importi non ci sarebbero pagamenti
+            // e la dashboard resterebbe a zero.
+            if store.simulation.paymentAmounts.count > 1 {
+                store.simulation.paymentAmounts.remove(at: index)
+            }
+        } else {
+            store.simulation.paymentAmounts.append(amount)
+        }
     }
 }
 
@@ -270,30 +187,26 @@ private struct DecimalField: View {
 
     var body: some View {
         LabeledContent(title) {
-            DecimalInput(value: $value, placeholder: "0")
+            DecimalInput(value: $value)
         }
     }
 }
 
-/// Il campo nudo. Tiene una copia in testo perche' mentre si digita "1." o
-/// "-" il numero non esiste ancora: convertire a ogni tasto cancellerebbe
-/// quello che si sta scrivendo.
+/// Il campo nudo. Tiene una copia in testo perche' mentre si digita "1." il
+/// numero non esiste ancora: convertire a ogni tasto cancellerebbe quello che
+/// si sta scrivendo.
 private struct DecimalInput: View {
     @Binding var value: Double
-    let placeholder: String
 
     @State private var text: String
 
-    init(value: Binding<Double>, placeholder: String) {
+    init(value: Binding<Double>) {
         _value = value
-        self.placeholder = placeholder
-        // Lo zero si mostra come campo vuoto: quasi tutti i valori partono da
-        // zero, e trovarselo scritto significherebbe cancellarlo ogni volta.
         _text = State(initialValue: value.wrappedValue == 0 ? "" : decimalText(value.wrappedValue))
     }
 
     var body: some View {
-        TextField(placeholder, text: $text)
+        TextField("0", text: $text)
             .keyboardType(.decimalPad)
             .multilineTextAlignment(.trailing)
             .onChange(of: text) { _, new in

@@ -1,23 +1,23 @@
 import Foundation
 
-/// Una cifra della fascia in alto. Il valore e' gia' testo: la fascia mostra
-/// sia importi che conteggi, e non ha senso costringerli allo stesso formato.
-struct StatItem: Identifiable, Codable {
-    var id = UUID()
+/// Una cifra della fascia in alto: valore gia' formattato, perche' la fascia
+/// mostra sia importi che conteggi.
+struct StatItem: Identifiable {
+    let id = UUID()
     var label: String
     var value: String
 }
 
-/// Una schermata della fascia scorrevole: tre cifre affiancate.
-struct StatPage: Identifiable, Codable {
-    var id = UUID()
+/// Una schermata della fascia scorrevole.
+struct StatPage: Identifiable {
+    let id = UUID()
     var items: [StatItem]
 }
 
-/// Un riquadro di "Reports overview": due periodi a confronto, ognuno con il
-/// suo totale, il suo intervallo di date e la sua spezzata.
-struct Report: Identifiable, Codable {
-    var id = UUID()
+/// Un riquadro di "Reports overview". Non ha piu' campi da riempire a mano:
+/// arriva gia' calcolato dalla simulazione.
+struct Report: Identifiable {
+    let id = UUID()
     var title: String
     var previousTotal: Double
     var currentTotal: Double
@@ -25,120 +25,176 @@ struct Report: Identifiable, Codable {
     var currentRange: String
     var previousSeries: [Double]
     var currentSeries: [Double]
+    var symbol: String
 
-    /// Se valorizzato, questo report non si scrive a mano: e' un altro report
-    /// meno una percentuale. Si modifica solo la sorgente, e questo segue.
-    var derivedFrom: UUID?
-
-    /// La percentuale tolta alla sorgente. Opzionale per non rompere i
-    /// salvataggi fatti prima che questa funzione esistesse.
-    var deduction: Double?
-
-    var deductionPercent: Double {
-        get { deduction ?? 2 }
-        set { deduction = newValue }
-    }
-
-    /// La variazione fra i due periodi, in percentuale. Nulla se il periodo
-    /// precedente e' a zero: non ci sarebbe niente da rapportare, e la
-    /// pastiglia in alto a destra semplicemente non compare.
+    /// La variazione fra i due periodi. Nulla se il precedente e' a zero: non
+    /// ci sarebbe niente da rapportare e la pastiglia non compare.
     var delta: Double? {
         guard previousTotal != 0 else { return nil }
         return (currentTotal - previousTotal) / previousTotal * 100
     }
 }
 
-/// Tutto quello che la dashboard mostra. E' una struttura di soli valori: il
-/// form ci scrive sopra, `DashboardStore` la salva, le viste la leggono.
-struct DashboardData: Codable {
+/// I periodi della barretta sotto "Reports overview".
+enum Period: String, CaseIterable, Identifiable {
+    case week = "1W"
+    case fourWeeks = "4W"
+    case year = "1Y"
+    case monthToDate = "MTD"
+    case quarterToDate = "QTD"
+    case yearToDate = "YTD"
+    case all = "ALL"
+
+    var id: String { rawValue }
+
+    /// Quanti giorni copre, contando oggi. MTD, QTD e YTD dipendono da che
+    /// giorno e' oggi, quindi cambiano da soli col passare del tempo.
+    func dayCount(today: Date, calendar: Calendar, businessDays: Int) -> Int {
+        switch self {
+        case .week: return 7
+        case .fourWeeks: return 28
+        case .year: return 365
+        case .monthToDate:
+            return calendar.component(.day, from: today)
+        case .quarterToDate:
+            let month = calendar.component(.month, from: today)
+            let quarterStartMonth = ((month - 1) / 3) * 3 + 1
+            var parts = calendar.dateComponents([.year], from: today)
+            parts.month = quarterStartMonth
+            parts.day = 1
+            guard let start = calendar.date(from: parts),
+                  let days = calendar.dateComponents([.day], from: start, to: today).day
+            else { return 90 }
+            return days + 1
+        case .yearToDate:
+            return calendar.ordinality(of: .day, in: .year, for: today) ?? 1
+        case .all:
+            return max(2, businessDays)
+        }
+    }
+}
+
+/// Tutto quello che la schermata mostra, gia' pronto. Si costruisce dalla
+/// simulazione e dal periodo scelto: non contiene niente che si possa
+/// modificare per conto suo.
+struct Dashboard {
     var merchantName: String
-    var todayTitle: String
     var pages: [StatPage]
-    var ranges: [String]
-    var selectedRange: String
     var reports: [Report]
+}
 
-    /// I report come vanno mostrati: quelli derivati con i numeri gia'
-    /// ricalcolati dalla loro sorgente. La derivazione si applica qui, in
-    /// lettura, e non riscrivendo i dati: cosi' la sorgente resta l'unica
-    /// versione vera e non c'e' modo che le due copie divergano.
-    var resolvedReports: [Report] {
-        reports.map(resolved)
+extension Dashboard {
+    init(simulation: Simulation, period: Period, today: Date = Date(), calendar: Calendar = .current) {
+        let days = period.dayCount(today: today, calendar: calendar, businessDays: simulation.businessDays)
+
+        // Il periodo corrente arriva a oggi; quello precedente e' lungo uguale
+        // e finisce il giorno prima che cominci il corrente.
+        let current = (0..<days).map { simulation.day($0) }
+        let previous = (days..<(days * 2)).map { simulation.day($0) }
+
+        // Gli offset crescono andando indietro nel tempo: per il grafico
+        // servono in ordine di lettura, dal piu' vecchio a oggi.
+        let currentDaily = current.map(\.gross).reversed().map { $0 }
+        let previousDaily = previous.map(\.gross).reversed().map { $0 }
+
+        let grossCurrent = currentDaily.reduce(0, +)
+        let grossPrevious = previousDaily.reduce(0, +)
+
+        let oggi = simulation.day(0)
+        let symbol = simulation.currency.reportSymbol
+        let cardSymbol = simulation.currency.cardSymbol
+
+        merchantName = simulation.merchantName
+
+        pages = [
+            StatPage(items: [
+                StatItem(label: "Gross volume", value: money(oggi.gross, symbol: cardSymbol)),
+                StatItem(label: "Payments", value: String(oggi.paymentCount)),
+                StatItem(label: "Customers", value: String(simulation.customerCount(oggi))),
+            ]),
+            StatPage(items: [
+                StatItem(label: "Net volume", value: money(simulation.net(oggi.gross), symbol: cardSymbol)),
+                StatItem(label: "Refunds", value: "0"),
+                StatItem(label: "Disputes", value: "0"),
+            ]),
+        ]
+
+        let previousLabel = Self.rangeLabel(
+            from: days * 2 - 1, to: days, today: today, calendar: calendar, endsToday: false
+        )
+        let currentLabel = Self.rangeLabel(
+            from: days - 1, to: 0, today: today, calendar: calendar, endsToday: true
+        )
+
+        reports = [
+            Report(
+                title: "Gross volume",
+                previousTotal: grossPrevious,
+                currentTotal: grossCurrent,
+                previousRange: previousLabel,
+                currentRange: currentLabel,
+                previousSeries: Self.series(previousDaily),
+                currentSeries: Self.series(currentDaily),
+                symbol: symbol
+            ),
+            Report(
+                title: "Net volume from sales",
+                previousTotal: simulation.net(grossPrevious),
+                currentTotal: simulation.net(grossCurrent),
+                previousRange: previousLabel,
+                currentRange: currentLabel,
+                previousSeries: Self.series(previousDaily).map(simulation.net),
+                currentSeries: Self.series(currentDaily).map(simulation.net),
+                symbol: symbol
+            ),
+        ]
     }
 
-    func resolved(_ report: Report) -> Report {
-        guard let sourceID = report.derivedFrom,
-              let source = reports.first(where: { $0.id == sourceID })
-        else { return report }
+    /// I punti del grafico. Fino a due settimane e' un punto per giorno, come
+    /// nell'originale; sui periodi lunghi i giorni si sommano a gruppi, perche'
+    /// trecento punti in trecento pixel non si leggerebbero.
+    private static func series(_ daily: [Double], maxPoints: Int = 14) -> [Double] {
+        guard daily.count > maxPoints else { return daily }
 
-        let factor = 1 - report.deductionPercent / 100
-        var out = report
-        out.previousTotal = source.previousTotal * factor
-        out.currentTotal = source.currentTotal * factor
-        out.previousSeries = source.previousSeries.map { $0 * factor }
-        out.currentSeries = source.currentSeries.map { $0 * factor }
-        out.previousRange = source.previousRange
-        out.currentRange = source.currentRange
-        return out
+        let bucket = Int((Double(daily.count) / Double(maxPoints)).rounded(.up))
+        return stride(from: 0, to: daily.count, by: bucket).map { start in
+            daily[start..<min(start + bucket, daily.count)].reduce(0, +)
+        }
     }
 
-    func sourceTitle(for report: Report) -> String? {
-        guard let sourceID = report.derivedFrom else { return nil }
-        return reports.first(where: { $0.id == sourceID })?.title
+    /// "19 Jul – 25 Jul 2026" per il periodo passato, "26 Jul – Today" per
+    /// quello in corso.
+    private static func rangeLabel(
+        from startOffset: Int, to endOffset: Int, today: Date, calendar: Calendar, endsToday: Bool
+    ) -> String {
+        guard let start = calendar.date(byAdding: .day, value: -startOffset, to: today),
+              let end = calendar.date(byAdding: .day, value: -endOffset, to: today)
+        else { return "" }
+
+        if endsToday {
+            return "\(shortDate.string(from: start)) – Today"
+        }
+        return "\(shortDate.string(from: start)) – \(longDate.string(from: end))"
     }
 }
 
-extension DashboardData {
-    /// I numeri dello screenshot di riferimento. Il secondo report non ha
-    /// numeri suoi: e' il primo meno il 2%.
-    static let mock: DashboardData = {
-        let gross = Report(
-            title: "Gross volume",
-            previousTotal: 22.80,
-            currentTotal: 17.19,
-            previousRange: "19 Jul – 25 Jul 2026",
-            currentRange: "26 Jul – Today",
-            previousSeries: [11.43, 5.72, 0, 0, 11.43, 0, 0],
-            currentSeries: [0, 0, 0, 5.73, 0, 11.46, 0]
-        )
+private let shortDate: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.dateFormat = "d MMM"
+    return f
+}()
 
-        var net = Report(
-            title: "Net volume from sales",
-            previousTotal: 0,
-            currentTotal: 0,
-            previousRange: "",
-            currentRange: "",
-            previousSeries: [],
-            currentSeries: []
-        )
-        net.derivedFrom = gross.id
-        net.deductionPercent = 2
-
-        return DashboardData(
-            merchantName: "Elite Web Consult",
-            todayTitle: "Today",
-            pages: [
-                StatPage(items: [
-                    StatItem(label: "Gross volume", value: "US$0.00"),
-                    StatItem(label: "Payments", value: "0"),
-                    StatItem(label: "Customers", value: "0"),
-                ]),
-                StatPage(items: [
-                    StatItem(label: "Net volume", value: "US$0.00"),
-                    StatItem(label: "Refunds", value: "0"),
-                    StatItem(label: "Disputes", value: "0"),
-                ]),
-            ],
-            ranges: ["1W", "4W", "1Y", "MTD", "QTD", "YTD", "ALL"],
-            selectedRange: "1W",
-            reports: [gross, net]
-        )
-    }()
-}
+private let longDate: DateFormatter = {
+    let f = DateFormatter()
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.dateFormat = "d MMM yyyy"
+    return f
+}()
 
 /// Formato americano a prescindere dalla lingua del telefono: la dashboard di
-/// Stripe scrive 1,234.56 anche su un iPhone italiano, e il punto al posto
-/// della virgola e' la prima cosa che tradirebbe la copia.
+/// Stripe scrive 1,234.56 anche su un iPhone italiano, e la virgola al posto
+/// del punto sarebbe la prima cosa a tradire la copia.
 private let amountFormatter: NumberFormatter = {
     let f = NumberFormatter()
     f.numberStyle = .decimal
@@ -150,8 +206,6 @@ private let amountFormatter: NumberFormatter = {
     return f
 }()
 
-/// Un importo come lo scrive Stripe nei report: simbolo attaccato, due
-/// decimali, migliaia separate.
 func money(_ value: Double, symbol: String = "$") -> String {
     symbol + (amountFormatter.string(from: value as NSNumber) ?? "0.00")
 }
@@ -161,8 +215,8 @@ func percent(_ value: Double) -> String {
     String(format: "%@%.1f%%", value < 0 ? "-" : "+", abs(value))
 }
 
-/// Un numero come si scrive dentro un campo di testo: niente simboli, niente
-/// separatore di migliaia, e i decimali solo se ci sono davvero.
+/// Un numero come si scrive dentro un campo di testo: niente simboli, e i
+/// decimali solo se ci sono davvero.
 func decimalText(_ value: Double) -> String {
     value == value.rounded() ? String(Int(value)) : String(format: "%.2f", value)
 }
@@ -174,41 +228,4 @@ func parseDecimal(_ text: String) -> Double? {
         .trimmingCharacters(in: .whitespaces)
         .replacingOccurrences(of: ",", with: ".")
     return cleaned.isEmpty ? 0 : Double(cleaned)
-}
-
-extension StatPage {
-    static func empty() -> StatPage {
-        StatPage(items: [
-            StatItem(label: "Gross volume", value: "US$0.00"),
-            StatItem(label: "Payments", value: "0"),
-            StatItem(label: "Customers", value: "0"),
-        ])
-    }
-}
-
-extension Report {
-    static func empty() -> Report {
-        Report(
-            title: "Nuovo report",
-            previousTotal: 0,
-            currentTotal: 0,
-            previousRange: "Periodo precedente",
-            currentRange: "Periodo corrente",
-            previousSeries: Array(repeating: 0, count: 7),
-            currentSeries: Array(repeating: 0, count: 7)
-        )
-    }
-
-    /// Allunga o accorcia entrambe le serie insieme: condividono l'asse
-    /// orizzontale, con lunghezze diverse il grafico non avrebbe senso.
-    mutating func resize(to count: Int) {
-        let n = max(2, count)
-        func fit(_ series: [Double]) -> [Double] {
-            series.count >= n
-                ? Array(series.prefix(n))
-                : series + Array(repeating: 0, count: n - series.count)
-        }
-        previousSeries = fit(previousSeries)
-        currentSeries = fit(currentSeries)
-    }
 }

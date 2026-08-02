@@ -7,7 +7,7 @@ struct DashboardView: View {
     @State private var showComposer = false
     @State private var showEditor = false
 
-    private var data: DashboardData { store.data }
+    private var data: Dashboard { store.dashboard }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -15,7 +15,7 @@ struct DashboardView: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(data.todayTitle)
+                    Text("Today")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(Theme.primaryText)
                         .padding(.horizontal, SCREEN_INSET)
@@ -33,7 +33,7 @@ struct DashboardView: View {
                     Hairline()
                         .padding(.top, 7.7)
 
-                    ForEach(data.resolvedReports) { report in
+                    ForEach(data.reports) { report in
                         ReportCard(report: report)
 
                         Hairline()
@@ -148,10 +148,10 @@ struct DashboardView: View {
     /// uguali fra loro. Non scorrono, ci stanno tutti.
     private var rangePicker: some View {
         HStack(spacing: 0) {
-            ForEach(Array(data.ranges.enumerated()), id: \.element) { index, range in
-                let isSelected = range == data.selectedRange
+            ForEach(Array(Period.allCases.enumerated()), id: \.element) { index, period in
+                let isSelected = period == store.period
 
-                Text(range)
+                Text(period.rawValue)
                     .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
                     .foregroundStyle(isSelected ? .white : Theme.secondaryText)
                     .padding(.horizontal, 11.7)
@@ -160,9 +160,9 @@ struct DashboardView: View {
                         if isSelected { Capsule().fill(Theme.accent) }
                     }
                     .contentShape(Capsule())
-                    .onTapGesture { store.data.selectedRange = range }
+                    .onTapGesture { store.period = period }
 
-                if index < data.ranges.count - 1 { Spacer(minLength: 0) }
+                if index < Period.allCases.count - 1 { Spacer(minLength: 0) }
             }
         }
         .padding(.horizontal, 8)
@@ -197,13 +197,13 @@ private struct ReportCard: View {
             }
 
             HStack(alignment: .firstTextBaseline) {
-                Text(money(report.previousTotal))
+                Text(money(report.previousTotal, symbol: report.symbol))
                     .font(.system(size: 18.5))
                     .foregroundStyle(Theme.secondaryText)
 
                 Spacer()
 
-                Text(money(report.currentTotal))
+                Text(money(report.currentTotal, symbol: report.symbol))
                     .font(.system(size: 18.5))
                     .foregroundStyle(Theme.accentLight)
             }
@@ -218,7 +218,7 @@ private struct ReportCard: View {
             .foregroundStyle(Theme.secondaryText)
             .padding(.top, 3.3)
 
-            ReportChart(previous: report.previousSeries, current: report.currentSeries)
+            ReportChart(previous: report.previousSeries, current: report.currentSeries, symbol: report.symbol)
                 .padding(.top, 11)
                 .padding(.horizontal, 3)
         }
