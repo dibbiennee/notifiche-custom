@@ -105,7 +105,17 @@ extension Simulation {
         var rng = SeededRandom(seed &+ UInt64(bitPattern: Int64(offset) &* 7_919))
         let low = min(dailyMin, dailyMax)
         let high = max(dailyMin, dailyMax)
-        let target = low + rng.double() * (high - low)
+
+        // Ogni blocco di trenta giorni ha un suo livello medio, e la giornata
+        // oscilla intorno a quello. Pescando ogni giorno in modo indipendente
+        // il grafico veniva una linea piatta: mesi buoni e mesi scarsi sono
+        // quello che dà alla curva la forma che ha nell'originale. Il valore
+        // resta comunque dentro l'intervallo impostato.
+        let block = Int(floor(Double(offset) / 30))
+        var blockRng = SeededRandom(seed &+ UInt64(bitPattern: Int64(block) &* 2_654_435_761))
+        let centre = 0.25 + 0.5 * blockRng.double()
+        let spread = (rng.double() - 0.5) * 0.4
+        let target = low + min(1, max(0, centre + spread)) * (high - low)
 
         var payments: [Double] = []
         var sum = 0.0

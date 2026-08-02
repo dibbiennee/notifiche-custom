@@ -99,7 +99,17 @@ export function day(simulation: Simulation, offset: number): SimulatedDay {
 
   const low = Math.min(simulation.dailyMin, simulation.dailyMax);
   const high = Math.max(simulation.dailyMin, simulation.dailyMax);
-  const target = low + rng.double() * (high - low);
+
+  // Ogni blocco di trenta giorni ha un suo livello medio, e la giornata oscilla
+  // intorno a quello. Pescando ogni giorno in modo indipendente il grafico
+  // veniva una linea piatta: mesi buoni e mesi scarsi sono quello che dà alla
+  // curva la forma che ha nell'originale. Il valore resta comunque dentro
+  // l'intervallo impostato.
+  const block = Math.floor(offset / 30);
+  const blockRng = new SeededRandom((BigInt(simulation.seed) + BigInt(block) * 2654435761n) & MASK);
+  const centre = 0.25 + 0.5 * blockRng.double();
+  const spread = (rng.double() - 0.5) * 0.4;
+  const target = low + Math.min(1, Math.max(0, centre + spread)) * (high - low);
 
   const payments: number[] = [];
   let sum = 0;
@@ -167,9 +177,22 @@ export function dailyGross(simulation: Simulation, from: number, to: number): nu
 export function series(daily: number[], maxPoints = 14): number[] {
   if (daily.length <= maxPoints) return daily;
 
+  // I gruppi si contano partendo da oggi e andando indietro: se il resto
+  // finisse in fondo, l'ultimo gruppo avrebbe meno giorni degli altri e il
+  // grafico crollerebbe a picco sull'ultimo punto senza che sia successo
+  // niente. Il resto sta all'inizio, dove un valore più basso è plausibile.
   const bucket = Math.ceil(daily.length / maxPoints);
+  const remainder = daily.length % bucket;
+
   const out: number[] = [];
-  for (let start = 0; start < daily.length; start += bucket) {
+  // Un avanzo troppo corto si unisce al gruppo dopo invece di fare punto a sé.
+  let start = remainder >= bucket / 2 ? 0 : remainder;
+  if (remainder > 0 && remainder >= bucket / 2) {
+    out.push(daily.slice(0, remainder).reduce((a, b) => a + b, 0));
+    start = remainder;
+  }
+
+  for (; start < daily.length; start += bucket) {
     out.push(daily.slice(start, start + bucket).reduce((a, b) => a + b, 0));
   }
   return out;

@@ -156,10 +156,28 @@ extension Dashboard {
     private static func series(_ daily: [Double], maxPoints: Int = 14) -> [Double] {
         guard daily.count > maxPoints else { return daily }
 
+        // I gruppi si contano partendo da oggi e andando indietro: se il resto
+        // finisse in fondo, l'ultimo gruppo avrebbe meno giorni degli altri e
+        // la spezzata crollerebbe a picco sull'ultimo punto senza che sia
+        // successo niente. Il resto sta all'inizio, dove un valore più basso è
+        // plausibile.
         let bucket = Int((Double(daily.count) / Double(maxPoints)).rounded(.up))
-        return stride(from: 0, to: daily.count, by: bucket).map { start in
-            daily[start..<min(start + bucket, daily.count)].reduce(0, +)
+        let remainder = daily.count % bucket
+
+        var out: [Double] = []
+        var start = remainder
+
+        // Un avanzo troppo corto si unisce al gruppo dopo invece di fare punto
+        // a sé.
+        if remainder > 0 && Double(remainder) >= Double(bucket) / 2 {
+            out.append(daily[0..<remainder].reduce(0, +))
         }
+
+        while start < daily.count {
+            out.append(daily[start..<min(start + bucket, daily.count)].reduce(0, +))
+            start += bucket
+        }
+        return out
     }
 
     /// "19 Jul – 25 Jul 2026" per il periodo passato, "26 Jul – Today" per
