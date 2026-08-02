@@ -252,7 +252,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 
 .sectionHead h1,
@@ -362,7 +362,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 22px;
 }
 
 .pill {
@@ -407,7 +407,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .cardTitle {
@@ -450,20 +450,22 @@
 
 /* Barra a segmenti della card Payments */
 
+/* Misure prese dallo screenshot: la barra è più alta di quanto sembri e sotto
+ * ha molta più aria di quella che avevo messo a occhio. */
 .stack {
   display: flex;
-  height: 12px;
+  height: 20px;
   border-radius: 3px;
   overflow: hidden;
   gap: 2px;
-  margin-bottom: 4px;
+  margin-bottom: 16px;
 }
 
 .legendRow {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 0;
+  padding: 11.5px 0;
   border-bottom: 1px solid var(--border);
   font-size: 14px;
 }

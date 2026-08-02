@@ -1,9 +1,10 @@
 import SwiftUI
 import UIKit
 
-/// I colori del tema scuro sono campionati dallo screenshot di riferimento e
-/// convertiti da Display P3 a sRGB. Quelli chiari sono letti dallo screenshot
-/// in tema chiaro e vanno ancora verificati al pixel.
+/// Tutti i colori, chiari e scuri, sono campionati dagli screenshot in
+/// screenshot-dashboard/ e convertiti da Display P3 a sRGB. L'unica eccezione
+/// è la pastiglia rossa nel tema chiaro: negli screenshot compare solo quella
+/// verde, quindi è costruita per analogia.
 ///
 /// Ogni colore è dichiarato nelle due versioni e sceglie da solo: l'app segue
 /// l'impostazione del telefono, non ne impone una.
@@ -27,40 +28,41 @@ enum Theme {
 
     /// Bordo della card, separatori e spezzata del periodo precedente sono
     /// tutti lo stesso identico colore.
-    static let separator = adaptive(light: rgb(223, 227, 232), dark: rgb(43, 48, 57))
+    static let separator = adaptive(light: rgb(216, 221, 228), dark: rgb(43, 48, 57))
     static let cardStroke = separator
-    static let mutedLine = adaptive(light: rgb(214, 218, 224), dark: rgb(43, 48, 57))
+    static let mutedLine = adaptive(light: rgb(216, 221, 228), dark: rgb(43, 48, 57))
 
     /// Le verticali del grafico, appena staccate dallo sfondo.
-    static let gridLine = adaptive(light: rgb(240, 242, 245), dark: rgb(31, 35, 43))
+    static let gridLine = adaptive(light: rgb(216, 221, 228), dark: rgb(31, 35, 43))
 
     /// Nello scuro non è bianco puro ma appena azzurrato; nel chiaro è quasi
     /// nero. Vale anche per le etichette della fascia, che sembrano grigie solo
     /// perché sono piccole.
-    static let primaryText = adaptive(light: rgb(26, 28, 33), dark: rgb(201, 206, 216))
+    static let primaryText = adaptive(light: rgb(53, 58, 68), dark: rgb(201, 206, 216))
 
     /// Date, totale del periodo precedente, periodi non selezionati.
-    static let secondaryText = adaptive(light: rgb(107, 114, 128), dark: rgb(139, 153, 173))
+    static let secondaryText = adaptive(light: rgb(88, 97, 112), dark: rgb(139, 153, 173))
 
     /// Le voci spente della barra in basso.
-    static let tabInactive = adaptive(light: rgb(107, 114, 128), dark: rgb(169, 178, 193))
+    static let tabInactive = adaptive(light: rgb(71, 78, 90), dark: rgb(169, 178, 193))
 
-    static let iconButton = adaptive(light: rgb(240, 242, 245), dark: rgb(75, 82, 95))
+    static let iconButton = adaptive(light: rgb(245, 246, 247), dark: rgb(75, 82, 95))
 
     /// Il viola pieno: pillola attiva, tasto +, voce attiva della barra.
-    static let accent = adaptive(light: rgb(99, 91, 255), dark: rgb(121, 105, 252))
+    static let accent = adaptive(light: rgb(103, 93, 254), dark: rgb(121, 105, 252))
 
-    /// Più chiaro: spezzata corrente, totale corrente, "Edit".
-    static let accentLight = adaptive(light: rgb(99, 91, 255), dark: rgb(145, 137, 254))
+    /// Spezzata corrente, totale corrente, "Edit". Nel tema chiaro è più
+    /// carico della pillola, non più chiaro: è così nell'originale.
+    static let accentLight = adaptive(light: rgb(83, 58, 253), dark: rgb(145, 137, 254))
 
     /// L'etichetta del periodo precedente sul grafico.
-    static let badgeGrey = adaptive(light: rgb(107, 114, 128), dark: rgb(149, 158, 171))
+    static let badgeGrey = adaptive(light: rgb(108, 117, 136), dark: rgb(149, 158, 171))
 
     static let negativeText = adaptive(light: rgb(179, 9, 60), dark: rgb(244, 107, 125))
-    static let negativeFill = adaptive(light: rgb(253, 226, 233), dark: rgb(66, 3, 32))
+    static let negativeFill = adaptive(light: rgb(254, 226, 233), dark: rgb(66, 3, 32))
 
-    static let positiveText = adaptive(light: rgb(11, 122, 69), dark: rgb(94, 224, 143))
-    static let positiveFill = adaptive(light: rgb(215, 247, 224), dark: rgb(6, 56, 30))
+    static let positiveText = adaptive(light: rgb(33, 112, 4), dark: rgb(94, 224, 143))
+    static let positiveFill = adaptive(light: rgb(209, 249, 179), dark: rgb(6, 56, 30))
 }
 
 /// Il margine laterale del contenuto, uguale ovunque.
