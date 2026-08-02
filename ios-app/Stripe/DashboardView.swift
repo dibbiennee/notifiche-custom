@@ -40,19 +40,18 @@ struct DashboardView: View {
                     }
                 }
             }
+            // La rotella di sistema resta a gestire il gesto ma non si vede:
+            // al suo posto, nello spazio che apre, va la nostra. Il centro
+            // sta 26pt sotto l'intestazione, come nello screenshot.
+            .overlay(alignment: .top) {
+                if store.isRefreshing {
+                    StripeSpinner()
+                        .padding(.top, 17)
+                }
+            }
+            .refreshable { await store.refresh() }
         }
         .background(Theme.background)
-        .refreshable { await store.refresh() }
-        // La rotella di sistema resta a gestire il gesto ma non si vede: al
-        // suo posto, nello spazio che apre, va la nostra.
-        .overlay(alignment: .top) {
-            if store.isRefreshing {
-                StripeSpinner()
-                    // Nello screenshot il centro dell'anello sta 26pt sotto
-                    // l'intestazione, dentro lo spazio che apre il gesto.
-                    .padding(.top, 17)
-            }
-        }
         .sheet(isPresented: $showComposer) { ContentView() }
         .sheet(isPresented: $showEditor) { DashboardEditor() }
     }
