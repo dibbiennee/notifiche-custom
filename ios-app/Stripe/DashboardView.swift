@@ -43,6 +43,16 @@ struct DashboardView: View {
         }
         .background(Theme.background)
         .refreshable { await store.refresh() }
+        // La rotella di sistema resta a gestire il gesto ma non si vede: al
+        // suo posto, nello spazio che apre, va la nostra.
+        .overlay(alignment: .top) {
+            if store.isRefreshing {
+                StripeSpinner()
+                    // Nello screenshot il centro dell'anello sta 26pt sotto
+                    // l'intestazione, dentro lo spazio che apre il gesto.
+                    .padding(.top, 17)
+            }
+        }
         .sheet(isPresented: $showComposer) { ContentView() }
         .sheet(isPresented: $showEditor) { DashboardEditor() }
     }
@@ -203,7 +213,7 @@ private struct ReportCard: View {
             }
 
             if isRefreshing {
-                ProgressView()
+                StripeSpinner()
                     .frame(maxWidth: .infinity)
                     .frame(height: bodyHeight)
             } else {

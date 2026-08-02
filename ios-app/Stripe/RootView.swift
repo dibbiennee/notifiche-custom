@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import UserNotifications
 
 /// Le cinque sezioni della barra in basso. Solo Home e' costruita: le altre
@@ -35,6 +36,12 @@ enum Tab: String, CaseIterable, Identifiable {
 struct RootView: View {
     @StateObject private var store = DashboardStore()
     @State private var tab: Tab = .home
+
+    init() {
+        // I raggi di iOS spariscono: il gesto resta quello di sistema, ma
+        // l'anello che si vede e' il nostro.
+        UIRefreshControl.appearance().tintColor = .clear
+    }
 
     var body: some View {
         ZStack {

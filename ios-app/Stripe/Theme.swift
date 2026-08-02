@@ -55,6 +55,10 @@ enum Theme {
     /// carico della pillola, non più chiaro: è così nell'originale.
     static let accentLight = adaptive(light: rgb(83, 58, 253), dark: rgb(145, 137, 254))
 
+    /// L'anello che gira mentre ricarica. Nel tema scuro non compare in
+    /// nessuno screenshot: e' costruito per analogia col testo secondario.
+    static let spinner = adaptive(light: rgb(129, 141, 159), dark: rgb(139, 153, 173))
+
     /// L'etichetta del periodo precedente sul grafico.
     static let badgeGrey = adaptive(light: rgb(108, 117, 136), dark: rgb(149, 158, 171))
 
