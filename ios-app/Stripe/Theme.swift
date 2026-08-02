@@ -1,10 +1,8 @@
 import SwiftUI
 import UIKit
 
-/// Tutti i colori, chiari e scuri, sono campionati dagli screenshot in
-/// screenshot-dashboard/ e convertiti da Display P3 a sRGB. L'unica eccezione
-/// è la pastiglia rossa nel tema chiaro: negli screenshot compare solo quella
-/// verde, quindi è costruita per analogia.
+/// Tutti i colori, chiari e scuri, sono campionati dagli screenshot e
+/// convertiti da Display P3 a sRGB. Nessuno e' scelto a occhio.
 ///
 /// Ogni colore è dichiarato nelle due versioni e sceglie da solo: l'app segue
 /// l'impostazione del telefono, non ne impone una.
@@ -62,8 +60,8 @@ enum Theme {
     /// L'etichetta del periodo precedente sul grafico.
     static let badgeGrey = adaptive(light: rgb(108, 117, 136), dark: rgb(149, 158, 171))
 
-    static let negativeText = adaptive(light: rgb(179, 9, 60), dark: rgb(244, 107, 125))
-    static let negativeFill = adaptive(light: rgb(254, 226, 233), dark: rgb(66, 3, 32))
+    static let negativeText = adaptive(light: rgb(192, 18, 59), dark: rgb(244, 107, 125))
+    static let negativeFill = adaptive(light: rgb(252, 232, 237), dark: rgb(66, 3, 32))
 
     static let positiveText = adaptive(light: rgb(33, 112, 4), dark: rgb(94, 224, 143))
     static let positiveFill = adaptive(light: rgb(209, 249, 179), dark: rgb(6, 56, 30))
