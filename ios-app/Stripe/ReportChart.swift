@@ -13,17 +13,19 @@ struct ReportChart: View {
 
     var body: some View {
         GeometryReader { geo in
-            let plotWidth = max(1, geo.size.width - dotRadius)
+            // La spezzata usa tutta la larghezza disponibile: il rientro di
+            // 3pt rispetto al testo lo mette chi la ospita.
+            let plotWidth = max(1, geo.size.width)
             let scale = Scale(previous + current)
 
             ZStack(alignment: .topLeading) {
                 grid(width: plotWidth)
 
                 line(previous, width: plotWidth, scale: scale)
-                    .stroke(Theme.mutedLine, style: StrokeStyle(lineWidth: 1.2, lineJoin: .round))
+                    .stroke(Theme.mutedLine, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
 
                 line(current, width: plotWidth, scale: scale)
-                    .stroke(Theme.accentLight, style: StrokeStyle(lineWidth: 2.4, lineJoin: .round))
+                    .stroke(Theme.accentLight, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
 
                 if let last = point(current, current.count - 1, width: plotWidth, scale: scale) {
                     Circle()

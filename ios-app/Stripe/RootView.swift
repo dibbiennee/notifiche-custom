@@ -22,7 +22,7 @@ enum Tab: String, CaseIterable, Identifiable {
         switch self {
         case .home: return "house"
         case .payments: return "banknote"
-        case .balances: return "wallet.pass"
+        case .balances: return "wallet.bifold"
         case .customers: return "person.2"
         case .search: return "magnifyingglass"
         }
@@ -68,16 +68,16 @@ struct RootView: View {
                         Image(systemName: item.icon)
                             .font(.system(size: 18))
                         Text(item.title)
-                            .font(.system(size: 11))
+                            .font(.system(size: 10))
                     }
-                    .foregroundStyle(item == tab ? Theme.accent : Theme.secondaryText)
+                    .foregroundStyle(item == tab ? Theme.accent : Theme.tabInactive)
                     .frame(maxWidth: .infinity)
                     .contentShape(Rectangle())
                     .onTapGesture { tab = item }
                 }
             }
-            .padding(.top, 8)
-            .padding(.bottom, 4)
+            .padding(.top, 6)
+            .padding(.bottom, 3)
         }
         .background(Theme.bar)
     }

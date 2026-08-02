@@ -30,17 +30,13 @@ struct DashboardView: View {
                     rangePicker
                         .padding(.top, 15)
 
-                    Rectangle()
-                        .fill(Theme.separator)
-                        .frame(height: 1)
-                        .padding(.top, 10)
+                    Hairline()
+                        .padding(.top, 9)
 
                     ForEach(data.resolvedReports) { report in
                         ReportCard(report: report)
 
-                        Rectangle()
-                            .fill(Theme.separator)
-                            .frame(height: 1)
+                        Hairline()
                     }
                 }
             }
@@ -97,20 +93,22 @@ struct DashboardView: View {
             HStack(spacing: 12) {
                 ForEach(data.pages) { page in
                     HStack(spacing: 0) {
-                        ForEach(page.items) { item in
+                        ForEach(Array(page.items.enumerated()), id: \.element.id) { index, item in
                             VStack(spacing: 12) {
                                 Text(item.label)
                                     .font(.system(size: 14))
-                                    .foregroundStyle(Theme.secondaryText)
+                                    .foregroundStyle(Theme.primaryText)
                                 Text(item.value)
                                     .font(.system(size: 20))
                                     .foregroundStyle(Theme.primaryText)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.6)
                             }
-                            .frame(maxWidth: .infinity)
+
+                            if index < page.items.count - 1 { Spacer(minLength: 0) }
                         }
                     }
+                    .padding(.horizontal, 24)
                     .padding(.vertical, 14)
                     .frame(height: 82)
                     .overlay {
@@ -198,13 +196,13 @@ private struct ReportCard: View {
 
             HStack(alignment: .firstTextBaseline) {
                 Text(money(report.previousTotal))
-                    .font(.system(size: 19))
+                    .font(.system(size: 18.5))
                     .foregroundStyle(Theme.secondaryText)
 
                 Spacer()
 
                 Text(money(report.currentTotal))
-                    .font(.system(size: 19))
+                    .font(.system(size: 18.5))
                     .foregroundStyle(Theme.accentLight)
             }
             .padding(.top, 3)
@@ -220,6 +218,7 @@ private struct ReportCard: View {
 
             ReportChart(previous: report.previousSeries, current: report.currentSeries)
                 .padding(.top, 10)
+                .padding(.horizontal, 3)
         }
         .padding(.horizontal, SCREEN_INSET)
         .padding(.top, 16)
