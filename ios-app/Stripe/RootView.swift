@@ -65,8 +65,7 @@ struct RootView: View {
             HStack(spacing: 0) {
                 ForEach(Tab.allCases) { item in
                     VStack(spacing: 4) {
-                        Image(systemName: item.icon)
-                            .font(.system(size: 18))
+                        TabIcon(tab: item)
                         Text(item.title)
                             .font(.system(size: 10))
                     }
