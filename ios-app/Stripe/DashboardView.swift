@@ -59,13 +59,14 @@ struct DashboardView: View {
             .coordinateSpace(name: "pull")
             .onPreferenceChange(PullOffset.self) { pull = $0 }
             .overlay(alignment: .top) {
-                // Mentre si trascina l'anello scende insieme al contenuto e si
-                // fa via via piu' visibile; quando la ricarica parte si ferma
-                // dove lo tiene il gesto di sistema, 26pt sotto l'intestazione.
-                if store.isRefreshing || pull > 6 {
+                // L'anello sta fermo. Misurato su cinque screenshot con il
+                // contenuto tirato di 60, 91, 126 e 168pt: il centro resta
+                // sempre a 121pt dall'alto, cioe' 26pt sotto l'intestazione.
+                // Farlo scendere col dito, come avevo fatto, e' sbagliato.
+                if store.isRefreshing || pull > 8 {
                     StripeSpinner()
-                        .opacity(store.isRefreshing ? 1 : min(1, Double(pull) / 60))
-                        .padding(.top, store.isRefreshing ? 17 : max(4, pull / 2 - 9))
+                        .opacity(store.isRefreshing ? 1 : min(1, Double(pull) / 45))
+                        .padding(.top, 17)
                 }
             }
             .refreshable { await store.refresh() }
