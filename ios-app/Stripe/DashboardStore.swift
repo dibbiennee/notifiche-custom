@@ -91,7 +91,7 @@ final class DashboardStore: ObservableObject {
         // L'attesa minima parte insieme alla richiesta, non dopo: se il server
         // risponde in duecento millisecondi la rotella comparirebbe e
         // sparirebbe prima che l'occhio la veda.
-        async let minimo: Void? = try? await Task.sleep(for: .milliseconds(1500))
+        async let minimo: Void? = try? await Task.sleep(for: .milliseconds(1100))
         if sync.isConfigured { await pull() }
         _ = await minimo
 

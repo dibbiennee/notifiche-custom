@@ -12,6 +12,17 @@ struct DashboardView: View {
     /// screenshot di riferimento compare a meta' gesto, col dito ancora giu'.
     @State private var pull: CGFloat = 0
 
+    /// Vero quando il trascinamento ha superato la soglia: al rilascio parte
+    /// la ricarica.
+    @State private var armed = false
+
+    /// Oltre questo il gesto conta come richiesta di ricaricare.
+    private let pullThreshold: CGFloat = 80
+
+    /// Di quanto resta giu' il contenuto mentre ricarica. Misurato sugli
+    /// screenshot: fra i 60 e i 90pt.
+    private let holdHeight: CGFloat = 68
+
     private var data: Dashboard { store.dashboard }
 
     var body: some View {
@@ -20,13 +31,10 @@ struct DashboardView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    GeometryReader { geo in
-                        Color.clear.preference(
-                            key: PullOffset.self,
-                            value: geo.frame(in: .named("pull")).minY
-                        )
-                    }
-                    .frame(height: 0)
+                    // Mentre ricarica il contenuto resta abbassato, come
+                    // faceva il controllo di sistema.
+                    Color.clear
+                        .frame(height: store.isRefreshing ? holdHeight : 0)
 
                     Text("Today")
                         .font(.system(size: 18, weight: .bold))
@@ -52,28 +60,72 @@ struct DashboardView: View {
                         Hairline()
                     }
                 }
+                // Il sensore dello scorrimento sta nello sfondo del contenuto,
+                // non come primo elemento alto zero: quello veniva rimisurato
+                // solo al rimbalzo, e l'anello faceva un lampo invece di
+                // restare per tutto il trascinamento.
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(
+                            key: PullOffset.self,
+                            value: geo.frame(in: .named("pull")).minY
+                        )
+                    }
+                )
             }
-            // La rotella di sistema resta a gestire il gesto ma non si vede:
-            // al suo posto, nello spazio che apre, va la nostra. Il centro
-            // sta 26pt sotto l'intestazione, come nello screenshot.
+            // Il trascinamento e' riconosciuto qui, non da `refreshable`.
+            // Quello di sistema si rompeva appena gli si metteva intorno un
+            // overlay, e comunque disegnava la sua rotella: cosi' invece si
+            // decide esattamente quando parte, cosa si vede e per quanto.
+            // Lettura ufficiale dello scorrimento. I trucchi con GeometryReader
+            // qui non riportavano niente, ed e' il motivo per cui il gesto non
+            // e' mai partito. Il telefono e' su iOS 26, quindi questa c'e'.
+            .modifier(ScrollPullReader { valore in aggiornaPull(valore) })
             .coordinateSpace(name: "pull")
-            .onPreferenceChange(PullOffset.self) { pull = $0 }
+            .onPreferenceChange(PullOffset.self) { aggiornaPull($0) }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 12)
+                    .onEnded { _ in
+                        if armed { startRefresh() } else { armed = false }
+                    }
+            )
+            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: store.isRefreshing)
             .overlay(alignment: .top) {
                 // L'anello sta fermo. Misurato su cinque screenshot con il
                 // contenuto tirato di 60, 91, 126 e 168pt: il centro resta
                 // sempre a 121pt dall'alto, cioe' 26pt sotto l'intestazione.
-                // Farlo scendere col dito, come avevo fatto, e' sbagliato.
-                if store.isRefreshing || pull > 8 {
+                if store.isRefreshing || pull > 20 {
                     StripeSpinner()
-                        .opacity(store.isRefreshing ? 1 : min(1, Double(pull) / 45))
                         .padding(.top, 17)
                 }
             }
-            .refreshable { await store.refresh() }
         }
         .background(Theme.background)
         .sheet(isPresented: $showComposer) { ContentView() }
         .sheet(isPresented: $showEditor) { DashboardEditor() }
+    }
+
+    /// Registra quanto e' tirata la lista e decide se e' ora di ricaricare.
+    /// La chiamano sia il lettore di iOS 18 sia quello vecchio: vince chi
+    /// riporta qualcosa.
+    private func aggiornaPull(_ value: CGFloat) {
+        let precedente = pull
+        pull = value
+        if value > pullThreshold { armed = true }
+
+        // Seconda innescata, indipendente dal gesto: quando il dito molla, la
+        // lista torna su di colpo.
+        if armed, value < precedente - 10, value < pullThreshold {
+            startRefresh()
+        }
+    }
+
+    /// Fa partire la ricarica una volta sola, da qualunque delle innescate
+    /// arrivi.
+    private func startRefresh() {
+        armed = false
+        guard !store.isRefreshing else { return }
+        Task { await store.refresh() }
     }
 
     // MARK: - Intestazione
@@ -282,5 +334,26 @@ private struct PullOffset: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
+    }
+}
+
+
+/// Legge quanto la lista e' stata tirata oltre il bordo alto, con l'API di
+/// sistema invece che misurando la geometria del contenuto.
+private struct ScrollPullReader: ViewModifier {
+    let onChange: (CGFloat) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.onScrollGeometryChange(for: CGFloat.self) { geo in
+                // A riposo lo scorrimento vale meno il margine alto: tirando
+                // giu' diventa piu' negativo, quindi il valore cresce.
+                -(geo.contentOffset.y + geo.contentInsets.top)
+            } action: { _, nuovo in
+                onChange(max(0, nuovo))
+            }
+        } else {
+            content
+        }
     }
 }
