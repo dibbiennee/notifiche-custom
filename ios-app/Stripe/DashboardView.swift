@@ -19,7 +19,7 @@ struct DashboardView: View {
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(Theme.primaryText)
                         .padding(.horizontal, SCREEN_INSET)
-                        .padding(.top, 10)
+                        .padding(.top, 11)
 
                     statCarousel
                         .padding(.top, 10)
@@ -31,7 +31,7 @@ struct DashboardView: View {
                         .padding(.top, 15)
 
                     Hairline()
-                        .padding(.top, 9)
+                        .padding(.top, 7.7)
 
                     ForEach(data.resolvedReports) { report in
                         ReportCard(report: report)
@@ -57,7 +57,7 @@ struct DashboardView: View {
             HStack {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Theme.iconButton)
-                    .frame(width: 30, height: 28)
+                    .frame(width: 28, height: 28)
                     .overlay {
                         Image(systemName: "storefront.fill")
                             .font(.system(size: 14))
@@ -78,10 +78,12 @@ struct DashboardView: View {
                                 .foregroundStyle(.white)
                         }
                 }
+                .padding(.trailing, 1)
             }
         }
         .padding(.horizontal, SCREEN_INSET)
-        .padding(.vertical, 8)
+        .padding(.top, 7)
+        .padding(.bottom, 8)
     }
 
     // MARK: - Fascia del giorno
@@ -113,7 +115,7 @@ struct DashboardView: View {
                     .frame(height: 82)
                     .overlay {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(Theme.cardStroke, lineWidth: 1)
+                            .strokeBorder(Theme.cardStroke, lineWidth: 1)
                     }
                     .containerRelativeFrame(.horizontal, count: 1, spacing: 12)
                 }
@@ -150,10 +152,10 @@ struct DashboardView: View {
                 let isSelected = range == data.selectedRange
 
                 Text(range)
-                    .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
+                    .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
                     .foregroundStyle(isSelected ? .white : Theme.secondaryText)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 7)
+                    .padding(.horizontal, 11.7)
+                    .padding(.vertical, 9)
                     .background {
                         if isSelected { Capsule().fill(Theme.accent) }
                     }
@@ -163,7 +165,7 @@ struct DashboardView: View {
                 if index < data.ranges.count - 1 { Spacer(minLength: 0) }
             }
         }
-        .padding(.horizontal, SCREEN_INSET)
+        .padding(.horizontal, 8)
     }
 }
 
@@ -205,7 +207,7 @@ private struct ReportCard: View {
                     .font(.system(size: 18.5))
                     .foregroundStyle(Theme.accentLight)
             }
-            .padding(.top, 3)
+            .padding(.top, 2)
 
             HStack {
                 Text(report.previousRange)
@@ -214,14 +216,14 @@ private struct ReportCard: View {
             }
             .font(.system(size: 12))
             .foregroundStyle(Theme.secondaryText)
-            .padding(.top, 2)
+            .padding(.top, 3.3)
 
             ReportChart(previous: report.previousSeries, current: report.currentSeries)
-                .padding(.top, 10)
+                .padding(.top, 11)
                 .padding(.horizontal, 3)
         }
         .padding(.horizontal, SCREEN_INSET)
-        .padding(.top, 16)
+        .padding(.top, 18.7)
         .padding(.bottom, 19)
     }
 }

@@ -46,7 +46,10 @@ struct DashboardEditor: View {
                             ReportEditor(
                                 report: $report,
                                 sourceTitle: store.data.sourceTitle(for: report),
-                                resolved: store.data.resolved(report)
+                                resolved: store.data.resolved(report),
+                                candidates: store.data.reports.filter {
+                                    $0.id != report.id && $0.derivedFrom == nil
+                                }.map { ($0.id, $0.title) }
                             )
                         } label: {
                             LabeledContent(report.title, value: money(store.data.resolved(report).currentTotal))
@@ -118,6 +121,11 @@ private struct ReportEditor: View {
     @Binding var report: Report
     let sourceTitle: String?
     let resolved: Report
+
+    /// Gli altri report a cui questo si puo' agganciare. Esclude quelli gia'
+    /// derivati: una catena di derivazioni non aggiungerebbe niente e
+    /// potrebbe chiudersi ad anello.
+    let candidates: [(id: UUID, title: String)]
 
     var body: some View {
         Form {
@@ -229,6 +237,19 @@ private struct ReportEditor: View {
                 Text("Valori del grafico")
             } footer: {
                 Text("A sinistra la spezzata grigia, a destra quella viola. Le etichette sul grafico escono da qui: massimo, minimo e punto finale sono calcolati.")
+            }
+
+            if !candidates.isEmpty {
+                Section {
+                    ForEach(candidates, id: \.id) { candidate in
+                        Button("Calcola da \(candidate.title)") {
+                            report.derivedFrom = candidate.id
+                            report.deductionPercent = 2
+                        }
+                    }
+                } footer: {
+                    Text("Agganciandolo, questo report smette di avere numeri suoi: diventa quello scelto meno una percentuale, grafico compreso.")
+                }
             }
     }
 

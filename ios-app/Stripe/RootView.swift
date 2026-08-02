@@ -76,7 +76,7 @@ struct RootView: View {
                     .onTapGesture { tab = item }
                 }
             }
-            .padding(.top, 6)
+            .padding(.top, 7.7)
             .padding(.bottom, 3)
         }
         .background(Theme.bar)

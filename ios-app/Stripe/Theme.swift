@@ -37,7 +37,8 @@ enum Theme {
     /// testo secondario.
     static let tabInactive = rgb(169, 178, 193)
 
-    static let iconButton = Color(white: 1, opacity: 0.10)
+    /// Il fondo del tasto col negozio: piu' chiaro di quanto sembri.
+    static let iconButton = rgb(75, 82, 95)
 
     /// Il viola pieno: pillola attiva, tasto +, voce attiva della barra.
     static let accent = rgb(121, 105, 252)
