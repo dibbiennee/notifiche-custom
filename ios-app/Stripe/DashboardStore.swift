@@ -17,6 +17,10 @@ final class DashboardStore: ObservableObject {
     /// L'esito dell'ultimo scambio col server, da mostrare nel pannello.
     @Published private(set) var syncMessage = ""
 
+    /// Vero mentre il trascinamento verso il basso sta ricaricando: i riquadri
+    /// si svuotano e mostrano la rotella, come nell'originale.
+    @Published private(set) var isRefreshing = false
+
     private let simulationKey = "dashboard.simulation"
     private let periodKey = "dashboard.period"
     private let syncKey = "dashboard.sync"
@@ -76,6 +80,19 @@ final class DashboardStore: ObservableObject {
         } catch {
             syncMessage = error.localizedDescription
         }
+    }
+
+    /// Il gesto di trascinamento verso il basso. Se il server c'e' ricarica da
+    /// li'; se non e' configurato aspetta comunque un attimo, perche' senza
+    /// attesa la rotella comparirebbe e sparirebbe nello stesso fotogramma.
+    func refresh() async {
+        isRefreshing = true
+        if sync.isConfigured {
+            await pull()
+        } else {
+            try? await Task.sleep(for: .milliseconds(1000))
+        }
+        isRefreshing = false
     }
 
     /// Manda le impostazioni al server, ma non a ogni tasto premuto: si aspetta

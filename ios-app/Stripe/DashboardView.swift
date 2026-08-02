@@ -13,7 +13,7 @@ struct DashboardView: View {
         VStack(spacing: 0) {
             header
 
-            ScrollView(showsIndicators: false) {
+            ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Today")
                         .font(.system(size: 18, weight: .bold))
@@ -34,7 +34,7 @@ struct DashboardView: View {
                         .padding(.top, 7.7)
 
                     ForEach(data.reports) { report in
-                        ReportCard(report: report)
+                        ReportCard(report: report, isRefreshing: store.isRefreshing)
 
                         Hairline()
                     }
@@ -42,6 +42,7 @@ struct DashboardView: View {
             }
         }
         .background(Theme.background)
+        .refreshable { await store.refresh() }
         .sheet(isPresented: $showComposer) { ContentView() }
         .sheet(isPresented: $showEditor) { DashboardEditor() }
     }
@@ -173,6 +174,11 @@ struct DashboardView: View {
 /// intervalli e il grafico sotto.
 private struct ReportCard: View {
     let report: Report
+    let isRefreshing: Bool
+
+    /// Quanto occupano insieme totali, date e grafico: mentre ricarica al loro
+    /// posto va la rotella, e il riquadro non deve cambiare altezza.
+    private let bodyHeight: CGFloat = 171
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -183,7 +189,7 @@ private struct ReportCard: View {
 
                 Spacer()
 
-                if let delta = report.delta {
+                if let delta = report.delta, !isRefreshing {
                     Text(percent(delta))
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(delta < 0 ? Theme.negativeText : Theme.positiveText)
@@ -196,6 +202,22 @@ private struct ReportCard: View {
                 }
             }
 
+            if isRefreshing {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: bodyHeight)
+            } else {
+                filled
+            }
+        }
+        .padding(.horizontal, SCREEN_INSET)
+        .padding(.top, 18.7)
+        .padding(.bottom, 19)
+    }
+
+    /// Il riquadro pieno: i due totali, le date e il grafico.
+    private var filled: some View {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 Text(money(report.previousTotal, symbol: report.symbol))
                     .font(.system(size: 18.5))
@@ -222,8 +244,5 @@ private struct ReportCard: View {
                 .padding(.top, 11)
                 .padding(.horizontal, 3)
         }
-        .padding(.horizontal, SCREEN_INSET)
-        .padding(.top, 18.7)
-        .padding(.bottom, 19)
     }
 }

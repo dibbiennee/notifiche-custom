@@ -45,6 +45,10 @@
 .app :where(button, input, select, textarea) {
   width: auto;
   font-family: inherit;
+  /* Il foglio globale scrive i bottoni in semibold. Qui i bottoni sono anche
+   * le voci del menu e le pillole, che nell'originale sono di peso normale:
+   * senza questa riga il tratto veniva 4px invece di 3. */
+  font-weight: 400;
   border-radius: 0;
   background: none;
   border: 0;
