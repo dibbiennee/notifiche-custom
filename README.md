@@ -3,6 +3,10 @@
 PWA per iPhone che manda una push con testo scelto al momento, sotto un nome e un
 logo scelti da te. Subito o dopo un ritardo, da secondi a giorni.
 
+Accanto c'è un'**app iOS nativa** con la stessa funzione senza la riga "from
+Stripe", e una **dashboard** che ricopia quella di Stripe, sul telefono e su
+`/dashboard` nel browser, sugli stessi dati. Vedi [App iOS](#app-ios).
+
 ## Come funziona
 
 Un **preset** è nome + logo. Diventa un'icona sulla Home di iOS. Il **testo** invece
@@ -54,6 +58,81 @@ L'app resta comunque protetta da `APP_TOKEN` su tutte le API.
 2. Apri `/p/<slug>/` **su iPhone, in Safari** → Condividi → Aggiungi alla schermata Home.
 3. Apri l'icona, tocca *Attiva notifiche*, concedi il permesso.
 4. Scrivi titolo e testo, scegli il ritardo, invia.
+
+## App iOS
+
+Nella cartella `ios-app/` c'è un'app nativa che fa due cose: programma le stesse
+notifiche senza passare dal server, e mostra una dashboard che ricopia la home
+dell'app Stripe.
+
+Le notifiche native sono **locali**: le programma iOS, non arrivano da internet.
+È il motivo per cui esiste — le web push della PWA aggiungono da sole la riga
+"from Stripe" sotto il titolo, e non c'è modo di toglierla.
+
+La dashboard non ha campi sciolti da riempire: si imposta **quanto si incassa al
+giorno e con quali importi**, e da lì vengono calcolati incassi giornalieri,
+totali dei due periodi, grafici, pagamenti, clienti e netto. Due cifre che si
+contraddicono non sono rappresentabili.
+
+Colori, dimensioni e spaziature non sono scelti a occhio: sono campionati dagli
+screenshot dell'app originale in `screenshot-dashboard/` e convertiti da Display
+P3 a sRGB.
+
+### Sincronizzazione col browser
+
+Le impostazioni stanno su Redis, **una riga sola** letta sia dall'app che dalla
+pagina `/dashboard`. Non c'è niente da sincronizzare perché non ci sono due
+copie: chi salva per ultimo vince.
+
+Si configura una volta da `Edit → Sincronizzazione`, mettendo l'indirizzo del
+server e l'`APP_TOKEN`. Senza configurarla, l'app funziona lo stesso: resta tutto
+sul telefono.
+
+⚠️ **Due persone con lo stesso token condividono la stessa simulazione.** Se un
+secondo dispositivo configura la sincronizzazione, cambiare i valori da una parte
+li cambia anche dall'altra. Per usarla in più persone in modo indipendente,
+lasciare la sincronizzazione vuota, oppure separare i dati per utente sul server
+(oggi non è previsto).
+
+`src/lib/simulation.ts` e `ios-app/Stripe/Simulation.swift` non sono due
+implementazioni equivalenti: devono produrre le **identiche** cifre, perché
+leggono le stesse impostazioni. Per questo il generatore è SplitMix64 e non
+`Math.random`, e l'ordine delle operazioni ricalca riga per riga. **Se si tocca
+l'algoritmo da una parte, va toccato anche dall'altra.** Il seme resta sotto
+2^53, altrimenti JSON lo arrotonda e i due lati divergono.
+
+### Installarla su un altro iPhone
+
+Non passa dall'App Store: si compila e si installa via cavo. Serve un Mac con
+Xcode, un Apple ID e il cavo.
+
+1. Scaricare il repository e aprire `ios-app/Stripe.xcodeproj`
+2. Collegare l'iPhone e sceglierlo come destinazione, in alto
+3. In **Signing & Capabilities** scegliere il proprio **Team**: quello salvato nel
+   progetto appartiene a un altro account e non funziona
+4. Cambiare il **Bundle Identifier**, per esempio da `com.edoardo.stripe-notifier`
+   a `com.tuonome.stripe-notifier`: quello attuale è già registrato altrove e la
+   firma fallisce
+5. Premere Play
+
+Al primo avvio iOS chiede di autorizzare lo sviluppatore: *Impostazioni →
+Generali → VPN e gestione dispositivo → Fidati*.
+
+**Con un Apple ID gratuito il profilo scade dopo 7 giorni**: l'icona resta ma
+l'app non si apre più, e va ricollegato il telefono e ripremuto Play. Con un
+account Apple Developer a pagamento dura un anno.
+
+Dal terminale, senza aprire Xcode, sono due comandi — sostituendo l'identificativo
+del dispositivo, che si legge con `xcrun devicectl list devices`:
+
+```bash
+cd ios-app && xcodebuild -project Stripe.xcodeproj -scheme Stripe -configuration Debug \
+  -destination 'id=IDENTIFICATIVO' -derivedDataPath ./dd -allowProvisioningUpdates build
+```
+
+```bash
+xcrun devicectl device install app --device IDENTIFICATIVO ./dd/Build/Products/Debug-iphoneos/Stripe.app
+```
 
 ## Limiti noti
 
