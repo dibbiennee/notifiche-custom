@@ -88,11 +88,31 @@ struct DashboardEditor: View {
 
                 Section {
                     DecimalField("Netto piu' basso del", value: $store.simulation.netDeductionPercent)
-                    DecimalField("Clienti che ricomprano", value: $store.simulation.repeatCustomerPercent)
                 } header: {
-                    Text("Percentuali")
+                    Text("Netto")
                 } footer: {
-                    Text("La prima e' quanto \"Net volume from sales\" scende rispetto al lordo. La seconda toglie clienti rispetto ai pagamenti: a zero, ogni pagamento e' un cliente nuovo.")
+                    Text("Quanto \"Net volume from sales\" scende rispetto al lordo.")
+                }
+
+                Section {
+                    DecimalField(
+                        "Da",
+                        value: Binding(
+                            get: { store.simulation.repeatMinPercent ?? 40 },
+                            set: { store.simulation.repeatMinPercent = $0 }
+                        )
+                    )
+                    DecimalField(
+                        "A",
+                        value: Binding(
+                            get: { store.simulation.repeatMaxPercent ?? 80 },
+                            set: { store.simulation.repeatMaxPercent = $0 }
+                        )
+                    )
+                } header: {
+                    Text("Upsell, in percentuale")
+                } footer: {
+                    Text("Ogni cliente compra il prodotto piu' economico; questa e' la quota che aggiunge anche quello piu' caro. Cambia ogni giorno dentro l'intervallo, cosi' pagamenti e clienti non restano nella stessa proporzione: sarebbe la cosa che tradisce subito dei numeri inventati.")
                 }
 
                 Section {

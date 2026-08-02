@@ -21,7 +21,10 @@ export interface Simulation {
   dailyMax: number;
   paymentAmounts: number[];
   netDeductionPercent: number;
-  repeatCustomerPercent: number;
+  /** Che quota di clienti, ogni giorno, prende anche il prodotto piu' caro
+   *  dopo quello base. Opzionali per non rompere i salvataggi vecchi. */
+  repeatMinPercent?: number;
+  repeatMaxPercent?: number;
   businessDays: number;
   /** Resta sotto 2^53: oltre, JSON e JavaScript lo arrotonderebbero e il
    *  telefono e il browser genererebbero numeri diversi. */
@@ -35,7 +38,8 @@ export const DEFAULT_SIMULATION: Simulation = {
   dailyMax: 800,
   paymentAmounts: [9.99, 49.99],
   netDeductionPercent: 2,
-  repeatCustomerPercent: 0,
+  repeatMinPercent: 40,
+  repeatMaxPercent: 80,
   businessDays: 400,
   seed: 20260802,
 };
@@ -84,17 +88,26 @@ class SeededRandom {
 }
 
 export interface SimulatedDay {
+  offset: number;
   payments: number[];
   gross: number;
   paymentCount: number;
+  /** Compratori distinti: meno dei pagamenti, perche' chi fa upsell paga due
+   *  volte. */
+  customers: number;
 }
 
 /** La giornata a `offset` giorni fa: 0 è oggi, 1 ieri. */
+/** La giornata si costruisce per clienti, non per pagamenti sciolti: ognuno
+ *  prende il prodotto base, e una parte aggiunge quello piu' caro. */
 export function day(simulation: Simulation, offset: number): SimulatedDay {
   const amounts = simulation.paymentAmounts.filter((a) => a > 0).sort((a, b) => a - b);
-  if (amounts.length === 0) return { payments: [], gross: 0, paymentCount: 0 };
+  if (amounts.length === 0) {
+    return { offset, payments: [], gross: 0, paymentCount: 0, customers: 0 };
+  }
 
-  const smallest = amounts[0];
+  const base = amounts[0];
+  const upsells = amounts.slice(1);
   const rng = new SeededRandom((BigInt(simulation.seed) + BigInt(offset) * 7919n) & MASK);
 
   const low = Math.min(simulation.dailyMin, simulation.dailyMax);
@@ -111,23 +124,35 @@ export function day(simulation: Simulation, offset: number): SimulatedDay {
   const spread = (rng.double() - 0.5) * 0.4;
   const target = low + Math.min(1, Math.max(0, centre + spread)) * (high - low);
 
+  // La quota di upsell del giorno, dal suo generatore: cosi' il flusso
+  // principale resta identico fra TypeScript e Swift.
+  const upsellRng = new SeededRandom((BigInt(simulation.seed) + BigInt(offset) * 15485863n) & MASK);
+  const quotaMin = Math.min(simulation.repeatMinPercent ?? 40, simulation.repeatMaxPercent ?? 80);
+  const quotaMax = Math.max(simulation.repeatMinPercent ?? 40, simulation.repeatMaxPercent ?? 80);
+  const quota = quotaMin + upsellRng.double() * (quotaMax - quotaMin);
+
   const payments: number[] = [];
+  let customers = 0;
   let sum = 0;
 
-  while (sum + smallest <= target && payments.length < 2000) {
-    const candidate = amounts[rng.index(amounts.length)];
-    const chosen = sum + candidate <= target ? candidate : smallest;
-    payments.push(chosen);
-    sum += chosen;
+  while (sum + base <= target && payments.length < 2000) {
+    payments.push(base);
+    sum += base;
+    customers += 1;
+
+    if (upsells.length === 0 || rng.double() * 100 >= quota) continue;
+    const extra = upsells[rng.index(upsells.length)];
+    if (sum + extra <= target) {
+      payments.push(extra);
+      sum += extra;
+    }
   }
 
-  return { payments, gross: sum, paymentCount: payments.length };
+  return { offset, payments, gross: sum, paymentCount: payments.length, customers };
 }
 
-export function customerCount(simulation: Simulation, d: SimulatedDay): number {
-  if (d.paymentCount === 0) return 0;
-  const repeats = (d.paymentCount * simulation.repeatCustomerPercent) / 100;
-  return Math.max(1, d.paymentCount - Math.round(repeats));
+export function customerCount(_simulation: Simulation, d: SimulatedDay): number {
+  return d.customers;
 }
 
 export function net(simulation: Simulation, gross: number): number {

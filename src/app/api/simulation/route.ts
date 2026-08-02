@@ -35,7 +35,8 @@ function readSimulation(body: unknown): Simulation {
     dailyMax: body.dailyMax,
     paymentAmounts: amounts,
     netDeductionPercent: body.netDeductionPercent ?? 2,
-    repeatCustomerPercent: body.repeatCustomerPercent ?? 0,
+    repeatMinPercent: body.repeatMinPercent ?? 40,
+    repeatMaxPercent: body.repeatMaxPercent ?? 80,
     businessDays: Math.max(2, Math.round(body.businessDays ?? 400)),
     seed: body.seed,
   };

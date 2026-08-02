@@ -672,12 +672,21 @@ function SettingsPanel({
             />
           </div>
           <div className={styles.field}>
-            <label htmlFor="repeat">Clienti che ricomprano %</label>
+            <label htmlFor="repeatMin">Upsell da %</label>
             <input
-              id="repeat"
+              id="repeatMin"
               type="number"
-              value={draft.repeatCustomerPercent}
-              onChange={(e) => set('repeatCustomerPercent', Number(e.target.value))}
+              value={draft.repeatMinPercent ?? 40}
+              onChange={(e) => set('repeatMinPercent', Number(e.target.value))}
+            />
+          </div>
+          <div className={styles.field}>
+            <label htmlFor="repeatMax">a %</label>
+            <input
+              id="repeatMax"
+              type="number"
+              value={draft.repeatMaxPercent ?? 80}
+              onChange={(e) => set('repeatMaxPercent', Number(e.target.value))}
             />
           </div>
         </div>

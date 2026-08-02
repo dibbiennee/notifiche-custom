@@ -20,9 +20,20 @@ struct Simulation: Codable, Equatable {
     /// Quanto scende il netto rispetto al lordo.
     var netDeductionPercent: Double = 2
 
-    /// Quanti clienti su cento fanno piu' di un acquisto. Alzandolo, i
-    /// clienti diventano meno dei pagamenti.
-    var repeatCustomerPercent: Double = 0
+    /// Che quota di clienti, ogni giorno, prende anche il prodotto piu' caro
+    /// dopo quello base. Non e' un numero fisso: ogni giornata pesca il suo in
+    /// questo intervallo, altrimenti pagamenti e clienti resterebbero sempre
+    /// nella stessa proporzione e si vedrebbe che sono inventati.
+    ///
+    /// Opzionali per non rompere i salvataggi fatti prima.
+    var repeatMinPercent: Double?
+    var repeatMaxPercent: Double?
+
+    var upsellRange: (low: Double, high: Double) {
+        let low = repeatMinPercent ?? 40
+        let high = repeatMaxPercent ?? 80
+        return (min(low, high), max(low, high))
+    }
 
     /// Da quanti giorni l'attivita' e' aperta: serve solo alla voce ALL.
     var businessDays: Int = 400
@@ -84,7 +95,12 @@ extension Simulation {
 /// Una giornata: i singoli pagamenti incassati. Tutto il resto sono conti su
 /// questa lista.
 struct SimulatedDay {
+    let offset: Int
     let payments: [Double]
+
+    /// Quanti compratori distinti. Meno dei pagamenti, perche' chi fa upsell
+    /// paga due volte.
+    let customers: Int
 
     var gross: Double { payments.reduce(0, +) }
     var paymentCount: Int { payments.count }
@@ -98,9 +114,16 @@ extension Simulation {
     /// Il risultato dipende solo da seed e offset, mai dall'ordine in cui la
     /// si chiama. Senza questa garanzia gli incassi cambierebbero mentre
     /// scorri, e i totali non tornerebbero mai con il grafico.
+    /// La giornata si costruisce per clienti, non per pagamenti sciolti: ognuno
+    /// prende il prodotto base, e una parte aggiunge quello piu' caro. E' un
+    /// upsell, non un riacquisto dello stesso taglio, ed e' il motivo per cui i
+    /// pagamenti sono sempre piu' dei clienti.
     func day(_ offset: Int) -> SimulatedDay {
         let amounts = paymentAmounts.filter { $0 > 0 }.sorted()
-        guard let smallest = amounts.first else { return SimulatedDay(payments: []) }
+        guard let base = amounts.first else {
+            return SimulatedDay(offset: offset, payments: [], customers: 0)
+        }
+        let upsells = Array(amounts.dropFirst())
 
         var rng = SeededRandom(seed &+ UInt64(bitPattern: Int64(offset) &* 7_919))
         let low = min(dailyMin, dailyMax)
@@ -117,27 +140,35 @@ extension Simulation {
         let spread = (rng.double() - 0.5) * 0.4
         let target = low + min(1, max(0, centre + spread)) * (high - low)
 
+        // La quota di upsell del giorno, dal suo generatore: cosi' il flusso
+        // principale resta identico fra Swift e TypeScript.
+        var upsellRng = SeededRandom(seed &+ UInt64(bitPattern: Int64(offset) &* 15_485_863))
+        let range = upsellRange
+        let quota = range.low + upsellRng.double() * (range.high - range.low)
+
         var payments: [Double] = []
+        var customers = 0
         var sum = 0.0
 
-        // Il tetto sul numero di pagamenti evita che un importo minuscolo con
-        // un incasso alto generi decine di migliaia di righe.
-        while sum + smallest <= target && payments.count < 2_000 {
-            let candidate = amounts[rng.index(amounts.count)]
-            let chosen = sum + candidate <= target ? candidate : smallest
-            payments.append(chosen)
-            sum += chosen
+        // Il tetto evita che un importo minuscolo con un incasso alto generi
+        // decine di migliaia di righe.
+        while sum + base <= target && payments.count < 2_000 {
+            payments.append(base)
+            sum += base
+            customers += 1
+
+            guard !upsells.isEmpty, rng.double() * 100 < quota else { continue }
+            let extra = upsells[rng.index(upsells.count)]
+            if sum + extra <= target {
+                payments.append(extra)
+                sum += extra
+            }
         }
 
-        return SimulatedDay(payments: payments)
+        return SimulatedDay(offset: offset, payments: payments, customers: customers)
     }
 
-    /// I clienti di una giornata: i pagamenti meno quelli che rifanno acquisto.
-    func customerCount(_ day: SimulatedDay) -> Int {
-        guard day.paymentCount > 0 else { return 0 }
-        let repeats = Double(day.paymentCount) * (repeatCustomerPercent / 100)
-        return max(1, day.paymentCount - Int(repeats.rounded()))
-    }
+    func customerCount(_ day: SimulatedDay) -> Int { day.customers }
 
     func net(_ gross: Double) -> Double {
         gross * (1 - netDeductionPercent / 100)
