@@ -26,6 +26,19 @@ struct Report: Identifiable, Codable {
     var previousSeries: [Double]
     var currentSeries: [Double]
 
+    /// Se valorizzato, questo report non si scrive a mano: e' un altro report
+    /// meno una percentuale. Si modifica solo la sorgente, e questo segue.
+    var derivedFrom: UUID?
+
+    /// La percentuale tolta alla sorgente. Opzionale per non rompere i
+    /// salvataggi fatti prima che questa funzione esistesse.
+    var deduction: Double?
+
+    var deductionPercent: Double {
+        get { deduction ?? 2 }
+        set { deduction = newValue }
+    }
+
     /// La variazione fra i due periodi, in percentuale. Nulla se il periodo
     /// precedente e' a zero: non ci sarebbe niente da rapportare, e la
     /// pastiglia in alto a destra semplicemente non compare.
@@ -44,48 +57,83 @@ struct DashboardData: Codable {
     var ranges: [String]
     var selectedRange: String
     var reports: [Report]
+
+    /// I report come vanno mostrati: quelli derivati con i numeri gia'
+    /// ricalcolati dalla loro sorgente. La derivazione si applica qui, in
+    /// lettura, e non riscrivendo i dati: cosi' la sorgente resta l'unica
+    /// versione vera e non c'e' modo che le due copie divergano.
+    var resolvedReports: [Report] {
+        reports.map(resolved)
+    }
+
+    func resolved(_ report: Report) -> Report {
+        guard let sourceID = report.derivedFrom,
+              let source = reports.first(where: { $0.id == sourceID })
+        else { return report }
+
+        let factor = 1 - report.deductionPercent / 100
+        var out = report
+        out.previousTotal = source.previousTotal * factor
+        out.currentTotal = source.currentTotal * factor
+        out.previousSeries = source.previousSeries.map { $0 * factor }
+        out.currentSeries = source.currentSeries.map { $0 * factor }
+        out.previousRange = source.previousRange
+        out.currentRange = source.currentRange
+        return out
+    }
+
+    func sourceTitle(for report: Report) -> String? {
+        guard let sourceID = report.derivedFrom else { return nil }
+        return reports.first(where: { $0.id == sourceID })?.title
+    }
 }
 
 extension DashboardData {
-    /// I numeri dello screenshot di riferimento, ricopiati tali e quali.
-    static let mock = DashboardData(
-        merchantName: "Elite Web Consult",
-        todayTitle: "Today",
-        pages: [
-            StatPage(items: [
-                StatItem(label: "Gross volume", value: "US$0.00"),
-                StatItem(label: "Payments", value: "0"),
-                StatItem(label: "Customers", value: "0"),
-            ]),
-            StatPage(items: [
-                StatItem(label: "Net volume", value: "US$0.00"),
-                StatItem(label: "Refunds", value: "0"),
-                StatItem(label: "Disputes", value: "0"),
-            ]),
-        ],
-        ranges: ["1W", "4W", "1Y", "MTD", "QTD", "YTD", "ALL"],
-        selectedRange: "1W",
-        reports: [
-            Report(
-                title: "Gross volume",
-                previousTotal: 22.80,
-                currentTotal: 17.19,
-                previousRange: "19 Jul – 25 Jul 2026",
-                currentRange: "26 Jul – Today",
-                previousSeries: [11.43, 5.72, 0, 0, 11.43, 0, 0],
-                currentSeries: [0, 0, 0, 5.73, 0, 11.46, 0]
-            ),
-            Report(
-                title: "Net volume from sales",
-                previousTotal: 20.98,
-                currentTotal: 15.67,
-                previousRange: "19 Jul – 25 Jul 2026",
-                currentRange: "26 Jul – Today",
-                previousSeries: [10.52, 5.26, 0, 0, 10.52, 0, 0],
-                currentSeries: [0, 0, 0, 5.12, 0, 10.55, 0]
-            ),
-        ]
-    )
+    /// I numeri dello screenshot di riferimento. Il secondo report non ha
+    /// numeri suoi: e' il primo meno il 2%.
+    static let mock: DashboardData = {
+        let gross = Report(
+            title: "Gross volume",
+            previousTotal: 22.80,
+            currentTotal: 17.19,
+            previousRange: "19 Jul – 25 Jul 2026",
+            currentRange: "26 Jul – Today",
+            previousSeries: [11.43, 5.72, 0, 0, 11.43, 0, 0],
+            currentSeries: [0, 0, 0, 5.73, 0, 11.46, 0]
+        )
+
+        var net = Report(
+            title: "Net volume from sales",
+            previousTotal: 0,
+            currentTotal: 0,
+            previousRange: "",
+            currentRange: "",
+            previousSeries: [],
+            currentSeries: []
+        )
+        net.derivedFrom = gross.id
+        net.deductionPercent = 2
+
+        return DashboardData(
+            merchantName: "Elite Web Consult",
+            todayTitle: "Today",
+            pages: [
+                StatPage(items: [
+                    StatItem(label: "Gross volume", value: "US$0.00"),
+                    StatItem(label: "Payments", value: "0"),
+                    StatItem(label: "Customers", value: "0"),
+                ]),
+                StatPage(items: [
+                    StatItem(label: "Net volume", value: "US$0.00"),
+                    StatItem(label: "Refunds", value: "0"),
+                    StatItem(label: "Disputes", value: "0"),
+                ]),
+            ],
+            ranges: ["1W", "4W", "1Y", "MTD", "QTD", "YTD", "ALL"],
+            selectedRange: "1W",
+            reports: [gross, net]
+        )
+    }()
 }
 
 /// Formato americano a prescindere dalla lingua del telefono: la dashboard di

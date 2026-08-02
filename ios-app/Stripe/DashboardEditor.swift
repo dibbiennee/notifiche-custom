@@ -43,9 +43,13 @@ struct DashboardEditor: View {
                 Section {
                     ForEach($store.data.reports) { $report in
                         NavigationLink {
-                            ReportEditor(report: $report)
+                            ReportEditor(
+                                report: $report,
+                                sourceTitle: store.data.sourceTitle(for: report),
+                                resolved: store.data.resolved(report)
+                            )
                         } label: {
-                            LabeledContent(report.title, value: money(report.currentTotal))
+                            LabeledContent(report.title, value: money(store.data.resolved(report).currentTotal))
                         }
                     }
                     .onDelete { store.data.reports.remove(atOffsets: $0) }
@@ -112,6 +116,8 @@ private struct StatPageEditor: View {
 /// Un report: i due totali, i due intervalli di date e le due serie di valori.
 private struct ReportEditor: View {
     @Binding var report: Report
+    let sourceTitle: String?
+    let resolved: Report
 
     var body: some View {
         Form {
@@ -119,6 +125,56 @@ private struct ReportEditor: View {
                 TextField("Gross volume", text: $report.title)
             }
 
+            if let sourceTitle {
+                derivedSections(sourceTitle: sourceTitle)
+            } else {
+                ownSections
+            }
+        }
+        .navigationTitle(report.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // Le due serie devono avere la stessa lunghezza: se un salvataggio
+            // vecchio le ha lasciate diverse, qui si rimettono in riga.
+            if report.previousSeries.count != report.currentSeries.count {
+                report.resize(to: rowCount)
+            }
+        }
+    }
+
+    /// Un report agganciato a un altro non ha numeri propri da mostrare: si
+    /// regola solo di quanto scende rispetto alla sorgente.
+    @ViewBuilder
+    private func derivedSections(sourceTitle: String) -> some View {
+        Section {
+            LabeledContent("Sorgente", value: sourceTitle)
+            DecimalField("Sconto %", value: $report.deductionPercent)
+
+            Button("Scollega e rendi modificabile") {
+                report.previousTotal = resolved.previousTotal
+                report.currentTotal = resolved.currentTotal
+                report.previousSeries = resolved.previousSeries
+                report.currentSeries = resolved.currentSeries
+                report.previousRange = resolved.previousRange
+                report.currentRange = resolved.currentRange
+                report.derivedFrom = nil
+            }
+        } header: {
+            Text("Calcolato")
+        } footer: {
+            Text("Questo report non si scrive: e' \(sourceTitle) meno lo sconto. Cambia i numeri li' sopra e qui seguono da soli, grafico compreso.")
+        }
+
+        Section("Risultato") {
+            LabeledContent("Totale precedente", value: money(resolved.previousTotal))
+            LabeledContent("Totale corrente", value: money(resolved.currentTotal))
+            LabeledContent("Variazione", value: resolved.delta.map(percent) ?? "—")
+        }
+        .foregroundStyle(.secondary)
+    }
+
+    @ViewBuilder
+    private var ownSections: some View {
             Section {
                 DecimalField("Totale", value: $report.previousTotal)
                 LabeledContent("Date") {
@@ -174,16 +230,6 @@ private struct ReportEditor: View {
             } footer: {
                 Text("A sinistra la spezzata grigia, a destra quella viola. Le etichette sul grafico escono da qui: massimo, minimo e punto finale sono calcolati.")
             }
-        }
-        .navigationTitle(report.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            // Le due serie devono avere la stessa lunghezza: se un salvataggio
-            // vecchio le ha lasciate diverse, qui si rimettono in riga.
-            if report.previousSeries.count != report.currentSeries.count {
-                report.resize(to: rowCount)
-            }
-        }
     }
 
     private var rowCount: Int {

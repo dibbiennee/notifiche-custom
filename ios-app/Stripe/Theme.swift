@@ -38,4 +38,4 @@ enum Theme {
 }
 
 /// Il margine laterale del contenuto, uguale ovunque.
-let SCREEN_INSET: CGFloat = 18
+let SCREEN_INSET: CGFloat = 16

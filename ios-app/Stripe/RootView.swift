@@ -66,9 +66,9 @@ struct RootView: View {
                 ForEach(Tab.allCases) { item in
                     VStack(spacing: 4) {
                         Image(systemName: item.icon)
-                            .font(.system(size: 21))
+                            .font(.system(size: 18))
                         Text(item.title)
-                            .font(.system(size: 12))
+                            .font(.system(size: 11))
                     }
                     .foregroundStyle(item == tab ? Theme.accent : Theme.secondaryText)
                     .frame(maxWidth: .infinity)
@@ -90,7 +90,7 @@ private struct PlaceholderView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(Theme.primaryText)
                 .padding(.horizontal, SCREEN_INSET)
                 .padding(.top, 22)

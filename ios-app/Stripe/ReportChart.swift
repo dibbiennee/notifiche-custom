@@ -7,9 +7,9 @@ struct ReportChart: View {
     let previous: [Double]
     let current: [Double]
 
-    private let badgeStrip: CGFloat = 24
+    private let badgeStrip: CGFloat = 16
     private let plotHeight: CGFloat = 100
-    private let dotRadius: CGFloat = 4.5
+    private let dotRadius: CGFloat = 3.5
 
     var body: some View {
         GeometryReader { geo in
@@ -110,7 +110,7 @@ struct ReportChart: View {
         func place(_ series: [Double], _ index: Int?, _ color: Color) {
             guard let index, let p = point(series, index, width: width, scale: scale) else { return }
             let text = money(series[index])
-            let estimated = CGFloat(text.count) * 8.4 + 14
+            let estimated = CGFloat(text.count) * 6.6 + 10
             let home = min(max(0, p.x - estimated / 2), max(0, width - estimated))
 
             var rect = CGRect(
@@ -149,18 +149,18 @@ struct ReportChart: View {
     }
 
     private struct Badge: View {
-        static let height: CGFloat = 21
+        static let height: CGFloat = 15
 
         let text: String
         let color: Color
 
         var body: some View {
             Text(text)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.white)
-                .padding(.horizontal, 7)
+                .padding(.horizontal, 5)
                 .frame(height: Badge.height)
-                .background(color, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                .background(color, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
         }
     }
 }

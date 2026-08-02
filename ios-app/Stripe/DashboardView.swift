@@ -16,26 +16,26 @@ struct DashboardView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(data.todayTitle)
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(Theme.primaryText)
                         .padding(.horizontal, SCREEN_INSET)
-                        .padding(.top, 14)
+                        .padding(.top, 10)
 
                     statCarousel
-                        .padding(.top, 13)
+                        .padding(.top, 10)
 
                     reportsHeader
-                        .padding(.top, 24)
+                        .padding(.top, 20)
 
                     rangePicker
-                        .padding(.top, 16)
+                        .padding(.top, 15)
 
                     Rectangle()
                         .fill(Theme.separator)
                         .frame(height: 1)
                         .padding(.top, 10)
 
-                    ForEach(data.reports) { report in
+                    ForEach(data.resolvedReports) { report in
                         ReportCard(report: report)
 
                         Rectangle()
@@ -55,7 +55,7 @@ struct DashboardView: View {
     private var header: some View {
         ZStack {
             Text(data.merchantName)
-                .font(.system(size: 20, weight: .semibold))
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(Theme.primaryText)
 
             HStack {
@@ -75,7 +75,7 @@ struct DashboardView: View {
                 } label: {
                     Circle()
                         .fill(Theme.accent)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 30, height: 30)
                         .overlay {
                             Image(systemName: "plus")
                                 .font(.system(size: 16, weight: .semibold))
@@ -98,12 +98,12 @@ struct DashboardView: View {
                 ForEach(data.pages) { page in
                     HStack(spacing: 0) {
                         ForEach(page.items) { item in
-                            VStack(spacing: 7) {
+                            VStack(spacing: 12) {
                                 Text(item.label)
-                                    .font(.system(size: 16))
+                                    .font(.system(size: 14))
                                     .foregroundStyle(Theme.secondaryText)
                                 Text(item.value)
-                                    .font(.system(size: 25, weight: .medium))
+                                    .font(.system(size: 20))
                                     .foregroundStyle(Theme.primaryText)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.6)
@@ -111,8 +111,8 @@ struct DashboardView: View {
                             .frame(maxWidth: .infinity)
                         }
                     }
-                    .padding(.vertical, 11)
-                    .frame(height: 80)
+                    .padding(.vertical, 14)
+                    .frame(height: 82)
                     .overlay {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .stroke(Theme.cardStroke, lineWidth: 1)
@@ -131,40 +131,41 @@ struct DashboardView: View {
     private var reportsHeader: some View {
         HStack {
             Text("Reports overview")
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(Theme.primaryText)
 
             Spacer()
 
             Button("Edit") { showEditor = true }
-                .font(.system(size: 19))
+                .font(.system(size: 15))
                 .foregroundStyle(Theme.accentLight)
         }
         .padding(.horizontal, SCREEN_INSET)
     }
 
+    /// I sette periodi occupano tutta la riga: il primo appoggiato al margine
+    /// sinistro, l'ultimo al destro, e lo spazio avanzato diviso in parti
+    /// uguali fra loro. Non scorrono, ci stanno tutti.
     private var rangePicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            // Padding stretto di proposito: i sette periodi devono starci
-            // tutti nella larghezza dello schermo, senza doverli scorrere.
-            HStack(spacing: 3) {
-                ForEach(data.ranges, id: \.self) { range in
-                    let isSelected = range == data.selectedRange
+        HStack(spacing: 0) {
+            ForEach(Array(data.ranges.enumerated()), id: \.element) { index, range in
+                let isSelected = range == data.selectedRange
 
-                    Text(range)
-                        .font(.system(size: 17, weight: isSelected ? .semibold : .regular))
-                        .foregroundStyle(isSelected ? .white : Theme.secondaryText)
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 7)
-                        .background {
-                            if isSelected { Capsule().fill(Theme.accent) }
-                        }
-                        .contentShape(Capsule())
-                        .onTapGesture { store.data.selectedRange = range }
-                }
+                Text(range)
+                    .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? .white : Theme.secondaryText)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 7)
+                    .background {
+                        if isSelected { Capsule().fill(Theme.accent) }
+                    }
+                    .contentShape(Capsule())
+                    .onTapGesture { store.data.selectedRange = range }
+
+                if index < data.ranges.count - 1 { Spacer(minLength: 0) }
             }
         }
-        .contentMargins(.horizontal, SCREEN_INSET, for: .scrollContent)
+        .padding(.horizontal, SCREEN_INSET)
     }
 }
 
@@ -177,14 +178,14 @@ private struct ReportCard: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 Text(report.title)
-                    .font(.system(size: 23, weight: .bold))
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(Theme.primaryText)
 
                 Spacer()
 
                 if let delta = report.delta {
                     Text(percent(delta))
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(delta < 0 ? Theme.negativeText : Theme.positiveText)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -197,31 +198,31 @@ private struct ReportCard: View {
 
             HStack(alignment: .firstTextBaseline) {
                 Text(money(report.previousTotal))
-                    .font(.system(size: 26, weight: .medium))
+                    .font(.system(size: 19))
                     .foregroundStyle(Theme.secondaryText)
 
                 Spacer()
 
                 Text(money(report.currentTotal))
-                    .font(.system(size: 26, weight: .medium))
+                    .font(.system(size: 19))
                     .foregroundStyle(Theme.accentLight)
             }
-            .padding(.top, 9)
+            .padding(.top, 3)
 
             HStack {
                 Text(report.previousRange)
                 Spacer()
                 Text(report.currentRange)
             }
-            .font(.system(size: 16))
+            .font(.system(size: 12))
             .foregroundStyle(Theme.secondaryText)
-            .padding(.top, 6)
+            .padding(.top, 2)
 
             ReportChart(previous: report.previousSeries, current: report.currentSeries)
-                .padding(.top, 12)
+                .padding(.top, 10)
         }
         .padding(.horizontal, SCREEN_INSET)
-        .padding(.top, 19)
+        .padding(.top, 16)
         .padding(.bottom, 19)
     }
 }
