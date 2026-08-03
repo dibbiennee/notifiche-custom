@@ -25,9 +25,10 @@ export interface Simulation {
    *  dopo quello base. Opzionali per non rompere i salvataggi vecchi. */
   repeatMinPercent?: number;
   repeatMaxPercent?: number;
-  /** Se valorizzato, l'incasso di oggi punta a questa cifra invece di essere
-   *  pescato a caso. Gli altri giorni non cambiano. */
-  todayTarget?: number;
+  /** Incassi fissati a mano, per data di calendario (`AAAA-MM-GG`). Quello che
+   *  fissi oggi resta su oggi anche domani: e' la ragione per cui la chiave e'
+   *  la data e non "quanti giorni fa". */
+  dayTargets?: Record<string, number>;
   businessDays: number;
   /** Resta sotto 2^53: oltre, JSON e JavaScript lo arrotonderebbero e il
    *  telefono e il browser genererebbero numeri diversi. */
@@ -61,6 +62,38 @@ export const SUGGESTED_NAMES = [
 const REFUNDED_RATIO = 0.031;
 const BLOCKED_RATIO = 0.025;
 const FAILED_RATIO = 0.175;
+
+/** Giorni dal 1970-01-01 alla data di calendario. E' l'algoritmo civile di
+ *  Hinnant: solo interi, nessun fuso orario di mezzo, cosi' Swift e TypeScript
+ *  danno per forza lo stesso numero. */
+export function daysFromCivil(y: number, m: number, d: number): number {
+  const anno = y - (m <= 2 ? 1 : 0);
+  const era = Math.floor(anno / 400);
+  const yoe = anno - era * 400;
+  const doy = Math.floor((153 * (m + (m > 2 ? -3 : 9)) + 2) / 5) + d - 1;
+  const doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy;
+  return era * 146097 + doe - 719468;
+}
+
+/** La data di `offset` giorni fa, secondo il calendario locale. */
+export function dateAt(offset: number, now = new Date()): Date {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
+}
+
+/** La chiave con cui si fissa un incasso: `AAAA-MM-GG`. */
+export function dateKey(date: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
+}
+
+/** Il numero di giorno assoluto usato come seme. Prima si usava `offset`, cioe'
+ *  quanti giorni fa: a mezzanotte ogni giornata scivolava di un posto e tutto
+ *  lo storico si rigenerava. Legandolo alla data, una giornata vale sempre lo
+ *  stesso importo. */
+export function epochDay(offset: number, now = new Date()): number {
+  const d = dateAt(offset, now);
+  return daysFromCivil(d.getFullYear(), d.getMonth() + 1, d.getDate());
+}
 
 // MARK: - Generatore
 
@@ -100,7 +133,9 @@ export interface SimulatedDay {
   customers: number;
 }
 
-/** La giornata a `offset` giorni fa: 0 è oggi, 1 ieri. */
+/** La giornata a `offset` giorni fa: 0 è oggi, 1 ieri. Il risultato dipende
+ *  dalla data, non dall'offset: domani questa stessa giornata varra' ancora
+ *  quanto vale adesso. */
 /** La giornata si costruisce per clienti, non per pagamenti sciolti: ognuno
  *  prende il prodotto base, e una parte aggiunge quello piu' caro. */
 export function day(simulation: Simulation, offset: number): SimulatedDay {
@@ -111,7 +146,8 @@ export function day(simulation: Simulation, offset: number): SimulatedDay {
 
   const base = amounts[0];
   const upsells = amounts.slice(1);
-  const rng = new SeededRandom((BigInt(simulation.seed) + BigInt(offset) * 7919n) & MASK);
+  const giorno = epochDay(offset);
+  const rng = new SeededRandom((BigInt(simulation.seed) + BigInt(giorno) * 7919n) & MASK);
 
   const low = Math.min(simulation.dailyMin, simulation.dailyMax);
   const high = Math.max(simulation.dailyMin, simulation.dailyMax);
@@ -121,7 +157,7 @@ export function day(simulation: Simulation, offset: number): SimulatedDay {
   // veniva una linea piatta: mesi buoni e mesi scarsi sono quello che dà alla
   // curva la forma che ha nell'originale. Il valore resta comunque dentro
   // l'intervallo impostato.
-  const block = Math.floor(offset / 30);
+  const block = Math.floor(giorno / 30);
   const blockRng = new SeededRandom((BigInt(simulation.seed) + BigInt(block) * 2654435761n) & MASK);
   const centre = 0.25 + 0.5 * blockRng.double();
   const spread = (rng.double() - 0.5) * 0.4;
@@ -129,11 +165,12 @@ export function day(simulation: Simulation, offset: number): SimulatedDay {
   // Le estrazioni sopra avvengono comunque, anche quando oggi e' fissato:
   // saltarle sposterebbe il flusso del generatore e cambierebbe i giorni dopo.
   const casuale = low + Math.min(1, Math.max(0, centre + spread)) * (high - low);
-  const target = offset === 0 && simulation.todayTarget ? simulation.todayTarget : casuale;
+  const fissato = simulation.dayTargets?.[dateKey(dateAt(offset))];
+  const target = fissato && fissato > 0 ? fissato : casuale;
 
   // La quota di upsell del giorno, dal suo generatore: cosi' il flusso
   // principale resta identico fra TypeScript e Swift.
-  const upsellRng = new SeededRandom((BigInt(simulation.seed) + BigInt(offset) * 15485863n) & MASK);
+  const upsellRng = new SeededRandom((BigInt(simulation.seed) + BigInt(giorno) * 15485863n) & MASK);
   const quotaMin = Math.min(simulation.repeatMinPercent ?? 40, simulation.repeatMaxPercent ?? 80);
   const quotaMax = Math.max(simulation.repeatMinPercent ?? 40, simulation.repeatMaxPercent ?? 80);
   const quota = quotaMin + upsellRng.double() * (quotaMax - quotaMin);

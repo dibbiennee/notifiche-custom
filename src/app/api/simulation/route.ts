@@ -37,10 +37,23 @@ function readSimulation(body: unknown): Simulation {
     netDeductionPercent: body.netDeductionPercent ?? 2,
     repeatMinPercent: body.repeatMinPercent ?? 40,
     repeatMaxPercent: body.repeatMaxPercent ?? 80,
-    todayTarget: typeof body.todayTarget === 'number' && body.todayTarget > 0 ? body.todayTarget : undefined,
+    dayTargets: sanitizeDayTargets(body.dayTargets),
     businessDays: Math.max(2, Math.round(body.businessDays ?? 400)),
     seed: body.seed,
   };
+}
+
+/** Tiene solo le chiavi che sono davvero una data e gli importi positivi: la
+ *  mappa arriva dal telefono e finisce nel seme di ogni giornata. */
+function sanitizeDayTargets(value: unknown): Record<string, number> | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const out: Record<string, number> = {};
+  for (const [key, amount] of Object.entries(value as Record<string, unknown>)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue;
+    if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) continue;
+    out[key] = amount;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 export async function GET(request: Request): Promise<Response> {

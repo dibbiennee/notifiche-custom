@@ -35,11 +35,12 @@ struct Simulation: Codable, Equatable {
         return (min(low, high), max(low, high))
     }
 
-    /// Se valorizzato, l'incasso di oggi non viene pescato a caso ma punta a
-    /// questa cifra. Gli altri giorni restano come sono, quindi la settimana si
-    /// aggiorna da sola. Il totale esatto dipende dai tagli disponibili: la
-    /// giornata si riempie finche' ci sta, quindi arriva appena sotto.
-    var todayTarget: Double?
+    /// Incassi fissati a mano, per data di calendario (`AAAA-MM-GG`). La
+    /// chiave e' la data e non "quanti giorni fa" proprio perche' quello che
+    /// fissi oggi deve restare su oggi anche domani. Il totale esatto dipende
+    /// dai tagli disponibili: la giornata si riempie finche' ci sta, quindi
+    /// arriva appena sotto.
+    var dayTargets: [String: Double]?
 
     /// Da quanti giorni l'attivita' e' aperta: serve solo alla voce ALL.
     var businessDays: Int = 400
@@ -112,13 +113,50 @@ struct SimulatedDay {
     var paymentCount: Int { payments.count }
 }
 
+// MARK: - Date
+
+extension Simulation {
+    /// Giorni dal 1970-01-01 alla data di calendario. E' l'algoritmo civile di
+    /// Hinnant: solo interi, nessun fuso orario di mezzo, cosi' Swift e
+    /// TypeScript danno per forza lo stesso numero.
+    static func daysFromCivil(_ y: Int, _ m: Int, _ d: Int) -> Int {
+        let anno = y - (m <= 2 ? 1 : 0)
+        let era = Int(floor(Double(anno) / 400))
+        let yoe = anno - era * 400
+        let doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1
+        let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
+        return era * 146_097 + doe - 719_468
+    }
+
+    /// La data di `offset` giorni fa, secondo il calendario locale.
+    static func date(at offset: Int, now: Date = Date()) -> Date {
+        let cal = Calendar.current
+        return cal.date(byAdding: .day, value: -offset, to: cal.startOfDay(for: now)) ?? now
+    }
+
+    /// La chiave con cui si fissa un incasso: `AAAA-MM-GG`.
+    static func dateKey(_ date: Date) -> String {
+        let c = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+    }
+
+    /// Il numero di giorno assoluto usato come seme. Prima si usava `offset`,
+    /// cioe' quanti giorni fa: a mezzanotte ogni giornata scivolava di un posto
+    /// e tutto lo storico si rigenerava. Legandolo alla data, una giornata vale
+    /// sempre lo stesso importo.
+    static func epochDay(_ offset: Int, now: Date = Date()) -> Int {
+        let c = Calendar.current.dateComponents([.year, .month, .day], from: date(at: offset, now: now))
+        return daysFromCivil(c.year ?? 1970, c.month ?? 1, c.day ?? 1)
+    }
+}
+
 // MARK: - Generazione
 
 extension Simulation {
     /// La giornata a `offset` giorni fa: 0 e' oggi, 1 ieri.
     ///
-    /// Il risultato dipende solo da seed e offset, mai dall'ordine in cui la
-    /// si chiama. Senza questa garanzia gli incassi cambierebbero mentre
+    /// Il risultato dipende da seed e data, mai dall'ordine in cui la si
+    /// chiama: domani questa stessa giornata varra' ancora quanto vale adesso. Senza questa garanzia gli incassi cambierebbero mentre
     /// scorri, e i totali non tornerebbero mai con il grafico.
     /// La giornata si costruisce per clienti, non per pagamenti sciolti: ognuno
     /// prende il prodotto base, e una parte aggiunge quello piu' caro. E' un
@@ -131,7 +169,8 @@ extension Simulation {
         }
         let upsells = Array(amounts.dropFirst())
 
-        var rng = SeededRandom(seed &+ UInt64(bitPattern: Int64(offset) &* 7_919))
+        let giorno = Simulation.epochDay(offset)
+        var rng = SeededRandom(seed &+ UInt64(bitPattern: Int64(giorno) &* 7_919))
         let low = min(dailyMin, dailyMax)
         let high = max(dailyMin, dailyMax)
 
@@ -140,7 +179,7 @@ extension Simulation {
         // il grafico veniva una linea piatta: mesi buoni e mesi scarsi sono
         // quello che dà alla curva la forma che ha nell'originale. Il valore
         // resta comunque dentro l'intervallo impostato.
-        let block = Int(floor(Double(offset) / 30))
+        let block = Int(floor(Double(giorno) / 30))
         var blockRng = SeededRandom(seed &+ UInt64(bitPattern: Int64(block) &* 2_654_435_761))
         let centre = 0.25 + 0.5 * blockRng.double()
         let spread = (rng.double() - 0.5) * 0.4
@@ -149,11 +188,12 @@ extension Simulation {
         // saltarle sposterebbe tutto il flusso del generatore e cambierebbe le
         // giornate successive.
         let casuale = low + min(1, max(0, centre + spread)) * (high - low)
-        let target = (offset == 0 ? todayTarget : nil) ?? casuale
+        let fissato = dayTargets?[Simulation.dateKey(Simulation.date(at: offset))]
+        let target = (fissato ?? 0) > 0 ? fissato! : casuale
 
         // La quota di upsell del giorno, dal suo generatore: cosi' il flusso
         // principale resta identico fra Swift e TypeScript.
-        var upsellRng = SeededRandom(seed &+ UInt64(bitPattern: Int64(offset) &* 15_485_863))
+        var upsellRng = SeededRandom(seed &+ UInt64(bitPattern: Int64(giorno) &* 15_485_863))
         let range = upsellRange
         let quota = range.low + upsellRng.double() * (range.high - range.low)
 

@@ -92,6 +92,11 @@ device configures the sync, changing values on one side changes them on the
 other. To use it independently with more than one person, leave the sync empty,
 or split the data per user on the server (not implemented today).
 
+Each day is seeded from its **calendar date**, not from how many days ago it
+was. That is what makes the history hold still: at midnight nothing reshuffles,
+and an amount you pin to a day stays on that day — tomorrow it is still there,
+on yesterday. Pinned amounts live in `dayTargets`, keyed `YYYY-MM-DD`.
+
 `src/lib/simulation.ts` and `ios-app/Stripe/Simulation.swift` are not two
 equivalent implementations: they have to produce the **identical** figures,
 because they read the same settings. That is why the generator is SplitMix64 and

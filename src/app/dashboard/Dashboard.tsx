@@ -8,6 +8,8 @@ import {
   compactMoney,
   customerCount,
   cumulativeByHour,
+  dateAt,
+  dateKey,
   day,
   dailyGross,
   failedPayments,
@@ -582,6 +584,9 @@ function SettingsPanel({
   onChange: (next: Simulation) => void;
 }) {
   const [draft, setDraft] = useState(simulation);
+  // Il campo qui sotto fissa l'incasso di oggi, e lo fissa sulla data: domani
+  // quello che scrivi adesso resta su oggi invece di seguirti.
+  const oggi = dateKey(dateAt(0));
 
   const set = <K extends keyof Simulation>(key: K, value: Simulation[K]) =>
     setDraft({ ...draft, [key]: value });
@@ -662,10 +667,14 @@ function SettingsPanel({
           <input
             id="today"
             type="number"
-            value={draft.todayTarget ?? 0}
-            onChange={(e) =>
-              set('todayTarget', Number(e.target.value) > 0 ? Number(e.target.value) : undefined)
-            }
+            value={draft.dayTargets?.[oggi] ?? 0}
+            onChange={(e) => {
+              const amount = Number(e.target.value);
+              const next = { ...(draft.dayTargets ?? {}) };
+              if (amount > 0) next[oggi] = amount;
+              else delete next[oggi];
+              set('dayTargets', Object.keys(next).length ? next : undefined);
+            }}
           />
         </div>
 

@@ -5,6 +5,10 @@ import SwiftUI
 /// possono piu' contraddirsi fra loro.
 struct DashboardEditor: View {
     @EnvironmentObject private var store: DashboardStore
+
+    /// Il campo "Aim for" fissa l'incasso sulla data di oggi, non su "oggi"
+    /// inteso come posizione: domani quello che scrivi adesso resta su oggi.
+    private var oggi: String { Simulation.dateKey(Simulation.date(at: 0)) }
     @Environment(\.dismiss) private var dismiss
 
     /// Gli stessi importi che si scelgono per le notifiche.
@@ -44,17 +48,25 @@ struct DashboardEditor: View {
                     DecimalField(
                         "Aim for",
                         value: Binding(
-                            get: { store.simulation.todayTarget ?? 0 },
-                            set: { store.simulation.todayTarget = $0 > 0 ? $0 : nil }
+                            get: { store.simulation.dayTargets?[oggi] ?? 0 },
+                            set: { importo in
+                                var mappa = store.simulation.dayTargets ?? [:]
+                                if importo > 0 { mappa[oggi] = importo } else { mappa[oggi] = nil }
+                                store.simulation.dayTargets = mappa.isEmpty ? nil : mappa
+                            }
                         )
                     )
-                    if store.simulation.todayTarget != nil {
-                        Button("Back to random") { store.simulation.todayTarget = nil }
+                    if store.simulation.dayTargets?[oggi] != nil {
+                        Button("Back to random") {
+                            var mappa = store.simulation.dayTargets ?? [:]
+                            mappa[oggi] = nil
+                            store.simulation.dayTargets = mappa.isEmpty ? nil : mappa
+                        }
                     }
                 } header: {
                     Text("Today only")
                 } footer: {
-                    Text("At zero, today is random like every other day. With an amount, the day fills with payments until they no longer fit under it, so the total lands just below — the prices are what they are. The other days stay put, so the week updates on its own.")
+                    Text("At zero, today is random like every other day. With an amount, the day fills with payments until they no longer fit under it, so the total lands just below — the prices are what they are. The amount stays on today's date: tomorrow it is still there, on yesterday.")
                 }
 
                 Section {
