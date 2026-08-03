@@ -163,6 +163,8 @@
   background: var(--bg);
 }
 
+/* Fondo grigio e nessun bordo: misurato (245,247,250) sull'originale, dove il
+ * nostro era bianco con un contorno. */
 .search {
   flex: 0 1 480px;
   display: flex;
@@ -170,10 +172,10 @@
   gap: 8px;
   height: 36px;
   padding: 0 12px;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 8px;
   color: var(--muted);
-  background: var(--bg);
+  background: var(--gutter);
 }
 
 .search input {
@@ -212,6 +214,20 @@
 
 .iconButton.accent {
   color: var(--accent);
+}
+
+/* Il piu' sta dentro un cerchio viola pieno, non e' un'icona nuda. */
+.addButton {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  margin: 0 2px;
 }
 
 .dot {
@@ -294,6 +310,27 @@
 
 /* ---------- Riquadro di oggi ---------- */
 
+/* Sotto "Today" corre una riga che parte dal bordo della colonna di sinistra,
+ * non dal margine del contenuto: per questo il margine negativo. */
+.sectionRule {
+  height: 1px;
+  background: #d4dee9;
+  margin: 0 0 28px -40px;
+}
+
+/* Grafico a sinistra, saldi in colonna a destra. La colonna e' larga 392px,
+ * misurati sul separatore fra i due saldi nell'originale. */
+.todayRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+}
+
+.todayMain {
+  flex: 1;
+  min-width: 0;
+}
+
 .todayStats {
   display: flex;
   gap: 64px;
@@ -333,9 +370,15 @@
 }
 
 .balances {
-  display: flex;
-  gap: 80px;
-  margin-top: 32px;
+  flex: 0 0 392px;
+  width: 392px;
+  padding-top: 4px;
+}
+
+.balanceDivider {
+  height: 1px;
+  background: var(--line);
+  margin: 28px 0;
 }
 
 .balanceHead {

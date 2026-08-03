@@ -202,7 +202,7 @@ function Topbar() {
         <button className={styles.iconButton}>
           <Icon name="settings" />
         </button>
-        <button className={`${styles.iconButton} ${styles.accent}`}>
+        <button className={styles.addButton}>
           <Icon name="plus" />
         </button>
         <button className={styles.setupGuide}>
@@ -256,43 +256,54 @@ function Content({ simulation, onEdit }: { simulation: Simulation; onEdit: () =>
         <button className={`${styles.ghostButton} ${styles.spacer}`}>Pay out funds</button>
       </div>
 
-      <div className={styles.todayStats}>
-        <div>
-          <div className={styles.statLabel}>
-            Net volume <Icon name="chevronDown" />
-          </div>
-          <div className={styles.statValue}>{money(view.todayNet, currency)}</div>
-          <div className={styles.statFoot}>{view.now}</div>
-        </div>
-        <div>
-          <div className={styles.statLabel}>
-            {view.comparisonDate} <Icon name="chevronDown" />
-          </div>
-          <div className={styles.statValue}>{money(view.previousNet, currency)}</div>
-        </div>
-      </div>
+      <div className={styles.sectionRule} />
 
-      <div className={styles.todayChart}>
-        <TodayChart today={view.todayHours} previous={view.previousHours} />
-        <div className={styles.axis}>
-          <span>00:00</span>
-          <span>00:00</span>
-        </div>
-      </div>
+      <div className={styles.todayRow}>
+        <div className={styles.todayMain}>
+          <div className={styles.todayStats}>
+            <div>
+              <div className={styles.statLabel}>
+                Net volume <Icon name="chevronDown" />
+              </div>
+              <div className={styles.statValue}>{money(view.todayNet, currency)}</div>
+              <div className={styles.statFoot}>{view.now}</div>
+            </div>
+            <div>
+              <div className={styles.statLabel}>
+                {view.comparisonDate} <Icon name="chevronDown" />
+              </div>
+              <div className={styles.statValue}>{money(view.previousNet, currency)}</div>
+            </div>
+          </div>
 
-      <div className={styles.balances}>
-        <div>
-          <div className={styles.balanceHead}>
-            {currency.toUpperCase()} balance <span className={styles.link}>View</span>
+          <div className={styles.todayChart}>
+            <TodayChart today={view.todayHours} previous={view.previousHours} />
+            <div className={styles.axis}>
+              <span>00:00</span>
+              <span>00:00</span>
+            </div>
           </div>
-          <div className={styles.balanceValue}>{money(view.balance, currency)}</div>
         </div>
-        <div>
-          <div className={styles.balanceHead}>
-            {currency.toUpperCase()} payouts <span className={styles.link}>View</span>
+
+        {/* I saldi stanno in colonna a destra del grafico, non sotto: e' la
+            differenza di impaginazione piu' evidente rispetto all'originale. */}
+        <div className={styles.balances}>
+          <div>
+            <div className={styles.balanceHead}>
+              {currency.toUpperCase()} balance <span className={styles.link}>View</span>
+            </div>
+            <div className={styles.balanceValue}>{money(view.balance, currency)}</div>
           </div>
-          <div className={styles.balanceValue}>{money(view.balance, currency)}</div>
-          <div className={styles.statFoot}>Expected {view.payoutDate}</div>
+
+          <div className={styles.balanceDivider} />
+
+          <div>
+            <div className={styles.balanceHead}>
+              {currency.toUpperCase()} payouts <span className={styles.link}>View</span>
+            </div>
+            <div className={styles.balanceValue}>{money(view.balance, currency)}</div>
+            <div className={styles.statFoot}>Expected {view.payoutDate}</div>
+          </div>
         </div>
       </div>
 
