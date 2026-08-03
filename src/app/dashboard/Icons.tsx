@@ -4,8 +4,13 @@
  * bundle molto più di questo file.
  *
  * Quelle della colonna di sinistra non sono inventate: vengono dalla mappa dei
- * pixel del ritaglio in `screen-sidebar/`, letta un carattere per pixel. La
+ * pixel dei ritagli in `screen-icone/`, letta un carattere per pixel. La
  * griglia è 16x16 e vale 16px, quindi un'unità è un pixel CSS.
+ *
+ * Ogni tracciato e' stato poi verificato ridisegnandolo su una canvas a 2x e
+ * confrontando pixel per pixel con l'originale: la sovrapposizione sta fra il
+ * 89% e il 100%. Modificandone uno conviene rifare quel conto, altrimenti si
+ * torna a disegnare a occhio.
  *
  * Home e Payments condividono la geometria con le icone della barra dell'app
  * iOS (`ios-app/Stripe/TabIcons.swift`), riportata da griglia 24 a griglia 16:
@@ -15,38 +20,51 @@
 const PATHS: Record<string, string> = {
   chevronDown: 'M4 6l4 4 4-4',
 
-  // Casa con la porta ad arco, non un quadrotto pieno.
-  Home: 'M1.3 14.9V5.1L8 0.9l6.7 4.2v9.8zM5.6 14.9V8.5q0-1 1-1h2.8q1 0 1 1v6.4',
+  // Casa con la punta del tetto arrotondata e larga, non uno spigolo: le due
+  // falde si fermano a 6.4 e 8.6 e si chiudono con una curva.
+  Home: 'M1.22 15.28 V4.98 L6.84 0.93 Q7.98 0.1 9.12 0.93 L14.74 4.98 V15.28 ZM5.9 15.28 V8.42 q0 -0.73 0.73 -0.73 h2.7 q0.73 0 0.73 0.73 V15.28',
 
-  // Tre righe di lunghezza calante e un cerchio a destra.
-  Balances: 'M2.5 3.5h7.5M1.5 8h5M2.5 12.5h5M12 4.7a3.3 3.3 0 100 6.6 3.3 3.3 0 000-6.6',
+  // Quattro righe, non tre, di lunghezza alternata, e il cerchio sta in basso
+  // a destra all'altezza della terza.
+  Balances:
+    'M1.7 2H9.3M3.2 6H10.8M1.7 10H6.8M3.2 14H7.3M12.5 8.7a2.8 2.8 0 100 5.6 2.8 2.8 0 000-5.6',
 
-  // Due frecce affacciate, quella sopra verso destra.
-  Transactions: 'M2 5.5h9.5M9.5 3.2l2.4 2.3-2.4 2.3M14 10.5H4.5M6.5 8.2l-2.4 2.3 2.4 2.3',
+  // Due frecce a uncino, non due segmenti dritti: ognuna parte con un tratto
+  // verticale, gira con un raccordo e finisce con una punta a V.
+  Transactions:
+    'M1.75 6.9V5.9A1.9 1.9 0 013.65 4H13.3M10.25 0.7 13.3 4 10.25 7.3M14.25 9.1v1A1.9 1.9 0 0112.35 12H2.7M5.75 15.3 2.7 12 5.75 8.7',
 
-  Customers: 'M8 7.5a2.4 2.4 0 100-4.8 2.4 2.4 0 000 4.8M3.4 14a4.6 4.6 0 019.2 0',
-  'Product catalogue': 'M8 1.4l5.8 3.2v6.8L8 14.6l-5.8-3.2V4.6zM2.2 4.6L8 7.8l5.8-3.2M8 7.8v6.8',
+  // Una persona sola: testa grande e busto chiuso in basso, non un archetto.
+  Customers:
+    'M8 0.7a3.3 3.3 0 100 6.6 3.3 3.3 0 000-6.6M1.2 15.2v-1Q1.2 9.7 6.6 9.7h2.8q5.4 0 5.4 4.6v1Z',
 
-  clock: 'M8 14.5A6.5 6.5 0 108 1.5a6.5 6.5 0 000 13zM8 4.6V8l2.2 1.6',
+  // Scatola esagonale con la fascia di nastro sulla faccia superiore.
+  'Product catalogue':
+    'M8 0.5 1.1 4V12L8 15.5 14.9 12V4ZM1.1 4 8 8.2 14.9 4M8 8.2V15.5M4.4 2.3 11.6 6',
 
-  // Portafoglio: corpo, patta inclinata e il bottone, che e' un punto tondo
-  // ottenuto con un segmento di lunghezza zero e la punta arrotondata.
+  clock: 'M8 14.3A6.3 6.3 0 108 1.7a6.3 6.3 0 000 12.6M7.9 4.2v5.2l2 1',
+
+  // Portafoglio: il corpo parte da 5.2, molto piu' in alto di quanto sembri, e
+  // la patta e' una diagonale che sale fino a 0.9. Il bottone e' un cerchietto
+  // pieno, ottenuto con un raggio piccolo e il tratto che lo riempie.
   Payments:
-    'M0.9 7.4a2.1 2.1 0 012.1-2.1h9.6a2.1 2.1 0 012.1 2.1v5.4a2.1 2.1 0 01-2.1 2.1H3a2.1 2.1 0 01-2.1-2.1zM1.1 4.9L10.7 1.2q1.1-.4 1.1.7v3.4M11.6 10.1h.01',
+    'M0.75 5.3H15.25V13.9q0 1.3-1.3 1.3H2.05q-1.3 0-1.3-1.3ZM0.75 3 11.3 1q.7-.2.7.6V5.3M10.9 10.25a.6 .6 0 101.2 0 .6 .6 0 10-1.2 0',
 
-  // Foglio con due righe e, in basso a destra, una freccia circolare che ne
-  // esce: e' il segno del rimborso ricorrente.
   Billing:
-    'M1.4 1.5h9.2v7.1M1.4 1.5v13h4.6M3.7 5h2.5M3.7 8.2h4.2M13 8.6v2.4h-2.4M12.9 11a3 3 0 11-1-2.3',
+    'M0.7 0.7h10.3v7.8M0.7 0.7v12.3q0 1.5 1.5 1.5h3M3 4h3M3 7h5.5M15 9.3v3.4h-3.4M14.9 12.4a3.4 3.4 0 11-1.3-2.7',
 
-  // Assi piu' tre colonne di altezza crescente.
-  Reporting: 'M2.5 1.6v12.6h12.4M5.2 14.2V7.6M8.6 14.2V5.2M12 14.2V2.8',
+  // Le colonne non poggiano sull'asse: restano sospese, finiscono a 10.8
+  // mentre la base e' a 14.
+  Reporting: 'M1.7 1.85V14.35H15M5 10.9V6.7M9 10.9V4.2M13 10.9V1.7',
 
-  // Tre riquadri e un piu' in alto a destra.
+  // Tre riquadri con gli angoli tondi e un piu' al posto del quarto.
   Apps:
-    'M1.4 2.2h5.6v5.6H1.4zM1.4 9.4h5.6V15H1.4zM8.6 9.4h5.6V15H8.6zM11.4 1.6v5M8.9 4.1h5',
+    'M0.66 2.53 q0 -1.46 1.46 -1.46 h2.6 q1.46 0 1.46 1.46 v2.6 q0 1.46 -1.46 1.46 H2.11 q-1.46 0 -1.46 -1.46 zM0.66 11.37 q0 -1.46 1.46 -1.46 h2.6 q1.46 0 1.46 1.46 v2.6 q0 1.46 -1.46 1.46 H2.11 q-1.46 0 -1.46 -1.46 zM9.29 11.37 q0 -1.46 1.46 -1.46 h2.6 q1.46 0 1.46 1.46 v2.6 q0 1.46 -1.46 1.46 h-2.6 q-1.46 0 -1.46 -1.46 zM12.41 0.76 V7.42 M9.19 4.09 h6.45',
 
-  More: 'M3 8h.01M8 8h.01M13 8h.01',
+  // I tre puntini sono larghi 3, quindi cerchietti pieni: un segmento di
+  // lunghezza zero darebbe un punto grande quanto il tratto, la meta'.
+  More:
+    'M1.65 8a.85 .85 0 101.7 0 .85 .85 0 10-1.7 0M7.15 8a.85 .85 0 101.7 0 .85 .85 0 10-1.7 0M12.65 8a.85 .85 0 101.7 0 .85 .85 0 10-1.7 0',
 
   search: 'M7.5 12.5a5 5 0 100-10 5 5 0 000 10zM11.5 11.5l3 3',
   apps: 'M2.5 2.5h4v4h-4zM9.5 2.5h4v4h-4zM2.5 9.5h4v4h-4zM11.5 9.5v4M9.5 11.5h4',
