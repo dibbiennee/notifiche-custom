@@ -8,3 +8,4 @@ playwright-report/
 tsconfig.tsbuildinfo
 .env*
 .DS_Store
+screen-confronto/
