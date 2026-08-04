@@ -474,9 +474,12 @@
   margin-bottom: 6px;
 }
 
+/* Il blocco delle carte e' tutto a 15px, non 14: titolo in medium, etichette
+ * delle righe normali, importi in medium. Misurati con lo stesso metodo sui
+ * ritagli in screen-icone, scarto sotto l'1%. */
 .cardTitle {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
 }
 
 .info {
@@ -487,7 +490,7 @@
 .cardLink {
   margin-left: auto;
   color: var(--accent);
-  font-size: 13px;
+  font-size: 15px;
   text-decoration: underline;
   cursor: pointer;
 }
@@ -532,7 +535,7 @@
   gap: 8px;
   padding: 11.5px 0;
   border-bottom: 1px solid var(--border);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .legendRow:last-of-type {
@@ -546,8 +549,11 @@
   flex: 0 0 8px;
 }
 
+/* L'importo pesa un gradino piu' dell'etichetta accanto: "US$9,943.97" ha
+ * corse di 4 pixel contro le 3 di "Succeeded", alla stessa misura. */
 .legendValue {
   margin-left: auto;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
