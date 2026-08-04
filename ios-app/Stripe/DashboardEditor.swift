@@ -70,6 +70,20 @@ struct DashboardEditor: View {
                 }
 
                 Section {
+                    Toggle("Send them by themselves", isOn: $store.auto.enabled)
+                    if store.auto.enabled {
+                        Stepper("\(store.auto.perDay) a day", value: $store.auto.perDay, in: 1...40)
+                        Stepper("\(store.auto.daysAhead) days ahead", value: $store.auto.daysAhead, in: 1...7)
+                        TextField("Text", text: $store.auto.template)
+                        LabeledContent("Queued now", value: "\(min(56, store.auto.budget))")
+                    }
+                } header: {
+                    Text("Automatic notifications")
+                } footer: {
+                    Text("They are not made up: they are the payments of the dashboard, at the hour the chart says they came in. Only a sample of them — iOS keeps at most 64 local notifications queued per app, and a day has far more payments than that. They are re-armed every time you open the app or pull to refresh, so keep the app in your habits or the queue runs dry.")
+                }
+
+                Section {
                     ForEach(preset, id: \.self) { amount in
                         Button {
                             toggle(amount)

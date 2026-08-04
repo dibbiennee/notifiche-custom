@@ -53,6 +53,9 @@ struct RootView: View {
             _ = try? await UNUserNotificationCenter.current()
                 .requestAuthorization(options: [.alert, .sound, .badge])
             await store.pull()
+            // Riarma la coda a ogni avvio: le notifiche automatiche vivono nella
+            // coda di iOS, e quella si esaurisce se l'app resta chiusa a lungo.
+            store.rearm()
         }
     }
 

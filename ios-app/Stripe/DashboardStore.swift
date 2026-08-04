@@ -8,11 +8,19 @@ final class DashboardStore: ObservableObject {
         didSet {
             save()
             schedulePush()
+            // Cambiando gli incassi cambiano i pagamenti, quindi anche gli
+            // orari e gli importi delle notifiche gia' in coda.
+            rearm()
         }
     }
 
     @Published var period: Period { didSet { save() } }
     @Published var sync: SyncSettings { didSet { save() } }
+
+    /// Le notifiche che si armano da sole. Stanno qui e non nella simulazione
+    /// perche' riguardano questo telefono: il browser non ne fa niente, e
+    /// finirebbero nella riga condivisa sul server.
+    @Published var auto: AutoNotificationSettings { didSet { save(); rearm() } }
 
     /// L'esito dell'ultimo scambio col server, da mostrare nel pannello.
     @Published private(set) var syncMessage = ""
@@ -24,6 +32,7 @@ final class DashboardStore: ObservableObject {
     private let simulationKey = "dashboard.simulation"
     private let periodKey = "dashboard.period"
     private let syncKey = "dashboard.sync"
+    private let autoKey = "dashboard.auto"
     private let defaults: UserDefaults
 
     private var pushTask: Task<Void, Never>?
@@ -46,6 +55,21 @@ final class DashboardStore: ObservableObject {
         } else {
             sync = SyncSettings()
         }
+
+        if let raw = defaults.data(forKey: autoKey),
+           let decoded = try? JSONDecoder().decode(AutoNotificationSettings.self, from: raw) {
+            auto = decoded
+        } else {
+            auto = AutoNotificationSettings()
+        }
+    }
+
+    /// Rifa' la coda delle notifiche automatiche. Va chiamata a ogni avvio e
+    /// dopo ogni cambio: e' idempotente, cancella le sue e le riprogramma.
+    func rearm() {
+        let sim = simulation
+        let impostazioni = auto
+        Task.detached { await AutoNotifications.rearm(simulation: sim, settings: impostazioni) }
     }
 
     var dashboard: Dashboard {
@@ -95,6 +119,10 @@ final class DashboardStore: ObservableObject {
         if sync.isConfigured { await pull() }
         _ = await minimo
 
+        // Il trascinamento e' anche l'occasione buona per rifare la coda: se
+        // il telefono e' rimasto giorni senza aprire l'app, qui si ricarica.
+        rearm()
+
         isRefreshing = false
     }
 
@@ -124,6 +152,9 @@ final class DashboardStore: ObservableObject {
         }
         if let raw = try? JSONEncoder().encode(sync) {
             defaults.set(raw, forKey: syncKey)
+        }
+        if let raw = try? JSONEncoder().encode(auto) {
+            defaults.set(raw, forKey: autoKey)
         }
         defaults.set(period.rawValue, forKey: periodKey)
     }

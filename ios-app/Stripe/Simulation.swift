@@ -258,6 +258,34 @@ extension Simulation {
         return out
     }
 
+    /// Un pagamento con l'ora in cui e' arrivato.
+    struct ScheduledPayment {
+        let date: Date
+        let amount: Double
+    }
+
+    /// I pagamenti della giornata con il loro orario. Le ore escono dallo
+    /// stesso generatore di `cumulativeByHour`, quindi sono le stesse che
+    /// disegnano la curva: una notifica arriva esattamente quando il grafico
+    /// sale. I minuti hanno un generatore a parte per non spostare quel flusso.
+    func paymentSchedule(_ offset: Int, now: Date = Date(), calendar: Calendar = .current) -> [ScheduledPayment] {
+        let d = day(offset)
+        let giorno = Simulation.epochDay(offset, now: now)
+        var oreRng = SeededRandom(seed &+ UInt64(bitPattern: Int64(giorno) &* 104_729))
+        var minutiRng = SeededRandom(seed &+ UInt64(bitPattern: Int64(giorno) &* 15_486_137))
+
+        let mezzanotte = calendar.startOfDay(for: Simulation.date(at: offset, now: now))
+        var out: [ScheduledPayment] = []
+        for amount in d.payments {
+            let ora = min(23, Int(6 + oreRng.double() * 18))
+            let minuto = min(59, Int(minutiRng.double() * 60))
+            let secondo = min(59, Int(minutiRng.double() * 60))
+            let quando = mezzanotte.addingTimeInterval(TimeInterval(ora * 3600 + minuto * 60 + secondo))
+            out.append(ScheduledPayment(date: quando, amount: amount))
+        }
+        return out.sorted { $0.date < $1.date }
+    }
+
     /// Quanto e' entrato finora oggi: l'ultimo punto della curva delle ore.
     func grossSoFar(now: Date = Date(), calendar: Calendar = .current) -> Double {
         cumulativeByHour(0, upToHour: calendar.component(.hour, from: now)).last ?? 0
