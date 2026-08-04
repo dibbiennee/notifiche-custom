@@ -39,6 +39,7 @@ function readSimulation(body: unknown): Simulation {
     repeatMaxPercent: body.repeatMaxPercent ?? 80,
     dayTargets: sanitizeDayTargets(body.dayTargets),
     businessDays: Math.max(2, Math.round(body.businessDays ?? 400)),
+    startDay: typeof body.startDay === 'number' && Number.isFinite(body.startDay) ? Math.round(body.startDay) : undefined,
     seed: body.seed,
   };
 }

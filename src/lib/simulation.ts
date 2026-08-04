@@ -30,6 +30,10 @@ export interface Simulation {
    *  la data e non "quanti giorni fa". */
   dayTargets?: Record<string, number>;
   businessDays: number;
+  /** Il giorno assoluto in cui l'attivita' ha aperto: da li' parte la rampa di
+   *  crescita. Fisso, altrimenti col passare del tempo ogni giornata
+   *  scivolerebbe indietro sulla rampa e cambierebbe valore. */
+  startDay?: number;
   /** Resta sotto 2^53: oltre, JSON e JavaScript lo arrotonderebbero e il
    *  telefono e il browser genererebbero numeri diversi. */
   seed: number;
@@ -152,19 +156,26 @@ export function day(simulation: Simulation, offset: number): SimulatedDay {
   const low = Math.min(simulation.dailyMin, simulation.dailyMax);
   const high = Math.max(simulation.dailyMin, simulation.dailyMax);
 
-  // Ogni blocco di trenta giorni ha un suo livello medio, e la giornata oscilla
-  // intorno a quello. Pescando ogni giorno in modo indipendente il grafico
-  // veniva una linea piatta: mesi buoni e mesi scarsi sono quello che dà alla
-  // curva la forma che ha nell'originale. Il valore resta comunque dentro
-  // l'intervallo impostato.
+  // L'attivita' cresce: il livello sale dal minimo il giorno dell'apertura fino
+  // al massimo oggi. Sopra ci sono due disturbi, il mese buono o scarso e lo
+  // scarto del singolo giorno, che servono solo a non far venire una retta. Il
+  // valore resta comunque dentro l'intervallo impostato.
+  const arco = Math.max(1, Math.max(2, simulation.businessDays) - 1);
+  const inizio = simulation.startDay ?? giorno + offset - arco;
+  // La rampa e' piu' lunga dello storico che si vede: cosi' oggi sta all'80%
+  // e non al tetto. Se arrivasse al massimo proprio oggi, le ultime settimane
+  // verrebbero tutte schiacciate contro il tetto e piatte.
+  const rampa = arco * 1.25;
+  const progresso = Math.min(1, Math.max(0, (giorno - inizio) / rampa));
+
   const block = Math.floor(giorno / 30);
   const blockRng = new SeededRandom((BigInt(simulation.seed) + BigInt(block) * 2654435761n) & MASK);
-  const centre = 0.25 + 0.5 * blockRng.double();
-  const spread = (rng.double() - 0.5) * 0.4;
+  const onda = (blockRng.double() - 0.5) * 0.3;
+  const spread = (rng.double() - 0.5) * 0.25;
 
   // Le estrazioni sopra avvengono comunque, anche quando oggi e' fissato:
   // saltarle sposterebbe il flusso del generatore e cambierebbe i giorni dopo.
-  const casuale = low + Math.min(1, Math.max(0, centre + spread)) * (high - low);
+  const casuale = low + Math.min(1, Math.max(0, 0.06 + 0.94 * progresso + onda + spread)) * (high - low);
   const fissato = simulation.dayTargets?.[dateKey(dateAt(offset))];
   const target = fissato && fissato > 0 ? fissato : casuale;
 

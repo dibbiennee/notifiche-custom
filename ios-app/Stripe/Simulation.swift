@@ -42,8 +42,14 @@ struct Simulation: Codable, Equatable {
     /// arriva appena sotto.
     var dayTargets: [String: Double]?
 
-    /// Da quanti giorni l'attivita' e' aperta: serve solo alla voce ALL.
+    /// Da quanti giorni l'attivita' e' aperta: serve alla voce ALL e alla
+    /// lunghezza della rampa di crescita.
     var businessDays: Int = 400
+
+    /// Il giorno assoluto in cui l'attivita' ha aperto: da li' parte la rampa.
+    /// Fisso, altrimenti col passare del tempo ogni giornata scivolerebbe
+    /// indietro sulla rampa e cambierebbe valore.
+    var startDay: Int?
 
     /// Cambiandolo cambiano tutti i numeri, restando dentro gli stessi
     /// intervalli. E' quello che rende la simulazione stabile: senza, i valori
@@ -174,20 +180,28 @@ extension Simulation {
         let low = min(dailyMin, dailyMax)
         let high = max(dailyMin, dailyMax)
 
-        // Ogni blocco di trenta giorni ha un suo livello medio, e la giornata
-        // oscilla intorno a quello. Pescando ogni giorno in modo indipendente
-        // il grafico veniva una linea piatta: mesi buoni e mesi scarsi sono
-        // quello che dà alla curva la forma che ha nell'originale. Il valore
-        // resta comunque dentro l'intervallo impostato.
+        // L'attivita' cresce: il livello sale dal minimo il giorno
+        // dell'apertura fino al massimo oggi. Sopra ci sono due disturbi, il
+        // mese buono o scarso e lo scarto del singolo giorno, che servono solo
+        // a non far venire una retta. Il valore resta comunque dentro
+        // l'intervallo impostato.
+        let arco = max(1, max(2, businessDays) - 1)
+        let inizio = startDay ?? (giorno + offset - arco)
+        // La rampa e' piu' lunga dello storico che si vede: cosi' oggi sta
+        // all'80% e non al tetto. Se arrivasse al massimo proprio oggi, le
+        // ultime settimane verrebbero tutte schiacciate contro il tetto.
+        let rampa = Double(arco) * 1.25
+        let progresso = min(1, max(0, Double(giorno - inizio) / rampa))
+
         let block = Int(floor(Double(giorno) / 30))
         var blockRng = SeededRandom(seed &+ UInt64(bitPattern: Int64(block) &* 2_654_435_761))
-        let centre = 0.25 + 0.5 * blockRng.double()
-        let spread = (rng.double() - 0.5) * 0.4
+        let onda = (blockRng.double() - 0.5) * 0.3
+        let spread = (rng.double() - 0.5) * 0.25
 
         // Le estrazioni sopra avvengono comunque, anche quando oggi e' fissato:
         // saltarle sposterebbe tutto il flusso del generatore e cambierebbe le
         // giornate successive.
-        let casuale = low + min(1, max(0, centre + spread)) * (high - low)
+        let casuale = low + min(1, max(0, 0.06 + 0.94 * progresso + onda + spread)) * (high - low)
         let fissato = dayTargets?[Simulation.dateKey(Simulation.date(at: offset))]
         let target = (fissato ?? 0) > 0 ? fissato! : casuale
 
