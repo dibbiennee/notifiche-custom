@@ -311,7 +311,9 @@ export function cumulativeByHour(
   upToHour: number,
 ): number[] {
   const d = day(simulation, offset);
-  const rng = new SeededRandom((BigInt(simulation.seed) + BigInt(offset) * 104_729n) & MASK);
+  // Anche qui il seme e' il giorno assoluto: se fosse l'offset, a mezzanotte
+  // le ore di ieri si ridistribuirebbero da capo.
+  const rng = new SeededRandom((BigInt(simulation.seed) + BigInt(epochDay(offset)) * 104_729n) & MASK);
 
   // I pagamenti si distribuiscono sulle ore, con più peso nel pomeriggio.
   const hours = new Array(24).fill(0) as number[];

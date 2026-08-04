@@ -101,6 +101,9 @@ extension Dashboard {
         let grossPrevious = previousDaily.reduce(0, +)
 
         let oggi = simulation.day(0)
+        // La fascia in alto mostra quanto e' entrato finora, non il totale
+        // della giornata: sale con le ore, come nell'originale.
+        let finora = simulation.grossSoFar(now: today, calendar: calendar)
         let symbol = simulation.currency.reportSymbol
         let cardSymbol = simulation.currency.cardSymbol
 
@@ -108,12 +111,12 @@ extension Dashboard {
 
         pages = [
             StatPage(items: [
-                StatItem(label: "Gross volume", value: money(oggi.gross, symbol: cardSymbol)),
+                StatItem(label: "Gross volume", value: money(finora, symbol: cardSymbol)),
                 StatItem(label: "Payments", value: String(oggi.paymentCount)),
                 StatItem(label: "Customers", value: String(simulation.customerCount(oggi))),
             ]),
             StatPage(items: [
-                StatItem(label: "Net volume", value: money(simulation.net(oggi.gross), symbol: cardSymbol)),
+                StatItem(label: "Net volume", value: money(simulation.net(finora), symbol: cardSymbol)),
                 StatItem(label: "Refunds", value: "0"),
                 StatItem(label: "Disputes", value: "0"),
             ]),

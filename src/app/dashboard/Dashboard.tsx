@@ -543,15 +543,21 @@ function derive(simulation: Simulation) {
   const payout = new Date();
   payout.setDate(payout.getDate() + 2);
 
+  // Quanto e' entrato finora, non il totale della giornata: la cifra in alto
+  // sale con le ore, come nell'originale. E' l'ultimo punto della linea piena
+  // del grafico, quindi i due non possono discordare.
+  const oreOggi = cumulativeByHour(simulation, 0, now.getHours());
+  const maturatoOggi = oreOggi[oreOggi.length - 1] ?? 0;
+
   return {
     now: timeLabel.format(now),
-    todayNet: net(simulation, today.gross),
+    todayNet: net(simulation, maturatoOggi),
     previousNet: net(simulation, yesterday.gross),
     comparisonDate: longDate.format(daysAgo(1)),
-    todayHours: cumulativeByHour(simulation, 0, now.getHours()),
+    todayHours: oreOggi,
     previousHours: cumulativeByHour(simulation, 1, 23),
 
-    balance: net(simulation, today.gross + yesterday.gross),
+    balance: net(simulation, maturatoOggi + yesterday.gross),
     payoutDate: shortDate.format(payout),
 
     grossAllTime: allTime.gross,

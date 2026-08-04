@@ -221,6 +221,34 @@ extension Simulation {
 
     func customerCount(_ day: SimulatedDay) -> Int { day.customers }
 
+    /// Quanto e' entrato dall'inizio della giornata fino a `upToHour`, ora per
+    /// ora. I pagamenti si distribuiscono fra le 6 e le 23, con piu' peso nel
+    /// pomeriggio. Deve restare identica a `cumulativeByHour` in
+    /// `src/lib/simulation.ts`: la cifra in alto viene da qui.
+    func cumulativeByHour(_ offset: Int, upToHour: Int) -> [Double] {
+        let d = day(offset)
+        var rng = SeededRandom(seed &+ UInt64(bitPattern: Int64(Simulation.epochDay(offset)) &* 104_729))
+
+        var hours = [Double](repeating: 0, count: 24)
+        for amount in d.payments {
+            let hour = min(23, Int(6 + rng.double() * 18))
+            hours[hour] += amount
+        }
+
+        var out: [Double] = []
+        var running = 0.0
+        for hour in 0...min(23, max(0, upToHour)) {
+            running += hours[hour]
+            out.append(running)
+        }
+        return out
+    }
+
+    /// Quanto e' entrato finora oggi: l'ultimo punto della curva delle ore.
+    func grossSoFar(now: Date = Date(), calendar: Calendar = .current) -> Double {
+        cumulativeByHour(0, upToHour: calendar.component(.hour, from: now)).last ?? 0
+    }
+
     func net(_ gross: Double) -> Double {
         gross * (1 - netDeductionPercent / 100)
     }
