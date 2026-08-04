@@ -195,13 +195,17 @@ extension Simulation {
 
         let block = Int(floor(Double(giorno) / 30))
         var blockRng = SeededRandom(seed &+ UInt64(bitPattern: Int64(block) &* 2_654_435_761))
-        let onda = (blockRng.double() - 0.5) * 0.3
-        let spread = (rng.double() - 0.5) * 0.25
+        // L'onda del mese conta poco, lo scarto del giorno molto: da una
+        // giornata all'altra si passa davvero da cinquanta a seicento, che e'
+        // come si comporta un progetto appena partito. Con uno scarto stretto
+        // veniva una curva pettinata, che non somiglia a niente.
+        let onda = (blockRng.double() - 0.5) * 0.2
+        let spread = (rng.double() - 0.5) * 0.9
 
         // Le estrazioni sopra avvengono comunque, anche quando oggi e' fissato:
         // saltarle sposterebbe tutto il flusso del generatore e cambierebbe le
         // giornate successive.
-        let casuale = low + min(1, max(0, 0.06 + 0.94 * progresso + onda + spread)) * (high - low)
+        let casuale = low + min(1, max(0, 0.18 + 0.8 * progresso + onda + spread)) * (high - low)
         let fissato = dayTargets?[Simulation.dateKey(Simulation.date(at: offset))]
         let target = (fissato ?? 0) > 0 ? fissato! : casuale
 

@@ -170,12 +170,16 @@ export function day(simulation: Simulation, offset: number): SimulatedDay {
 
   const block = Math.floor(giorno / 30);
   const blockRng = new SeededRandom((BigInt(simulation.seed) + BigInt(block) * 2654435761n) & MASK);
-  const onda = (blockRng.double() - 0.5) * 0.3;
-  const spread = (rng.double() - 0.5) * 0.25;
+  // L'onda del mese conta poco, lo scarto del giorno molto: da una giornata
+  // all'altra si passa davvero da cinquanta a seicento, che e' come si comporta
+  // un progetto appena partito. Con uno scarto stretto veniva una curva
+  // pettinata, che non somiglia a niente.
+  const onda = (blockRng.double() - 0.5) * 0.2;
+  const spread = (rng.double() - 0.5) * 0.9;
 
   // Le estrazioni sopra avvengono comunque, anche quando oggi e' fissato:
   // saltarle sposterebbe il flusso del generatore e cambierebbe i giorni dopo.
-  const casuale = low + Math.min(1, Math.max(0, 0.06 + 0.94 * progresso + onda + spread)) * (high - low);
+  const casuale = low + Math.min(1, Math.max(0, 0.18 + 0.8 * progresso + onda + spread)) * (high - low);
   const fissato = simulation.dayTargets?.[dateKey(dateAt(offset))];
   const target = fissato && fissato > 0 ? fissato : casuale;
 
