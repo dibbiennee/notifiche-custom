@@ -274,7 +274,9 @@ function Content({ simulation, onEdit }: { simulation: Simulation; onEdit: () =>
               <div className={styles.statLabel}>
                 {view.comparisonDate} <Icon name="chevronDown" />
               </div>
-              <div className={styles.statValue}>{money(view.previousNet, currency)}</div>
+              <div className={`${styles.statValue} ${styles.statCompare}`}>
+                {money(view.previousNet, currency)}
+              </div>
             </div>
           </div>
 

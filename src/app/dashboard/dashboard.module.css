@@ -356,10 +356,17 @@
   margin-bottom: 4px;
 }
 
+/* Le cifre della fascia non sono in grassetto nell'originale: peso normale e
+ * 20px, non 24 in semibold. Il confronto a destra e' ancora piu' piccolo, 16.
+ * Misurati sui ritagli in screen-icone: "US$0.00" viene 19,75px peso 400 e
+ * "US$70.20" 16px peso 400, con scarto sotto l'1%. */
 .statValue {
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.statCompare {
+  font-size: 16px;
 }
 
 .statFoot {
@@ -408,8 +415,8 @@
 }
 
 .balanceValue {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 400;
   margin-top: 4px;
 }
 
@@ -485,10 +492,11 @@
   cursor: pointer;
 }
 
+/* Qui il semibold e' giusto — "US$11,633.53" viene 20,25px peso 600 — ma la
+ * misura era 24. */
 .cardValue {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
-  letter-spacing: -0.01em;
   margin-bottom: 12px;
 }
 
