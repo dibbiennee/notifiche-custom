@@ -40,6 +40,7 @@ function readSimulation(body: unknown): Simulation {
     dayTargets: sanitizeDayTargets(body.dayTargets),
     businessDays: Math.max(2, Math.round(body.businessDays ?? 400)),
     startDay: typeof body.startDay === 'number' && Number.isFinite(body.startDay) ? Math.round(body.startDay) : undefined,
+    rampDays: typeof body.rampDays === 'number' && body.rampDays >= 1 ? Math.round(body.rampDays) : undefined,
     seed: body.seed,
   };
 }

@@ -7,6 +7,7 @@ import {
   SUGGESTED_NAMES,
   compactMoney,
   customerCount,
+  businessSpan,
   cumulativeByHour,
   dateAt,
   dateKey,
@@ -515,8 +516,8 @@ function ChartCard({
 /* ---------- Dai numeri della simulazione a quelli della pagina ---------- */
 
 function derive(simulation: Simulation) {
-  const span = Math.max(2, simulation.businessDays);
   const now = new Date();
+  const span = businessSpan(simulation, now);
 
   const today = day(simulation, 0);
   const yesterday = day(simulation, 1);

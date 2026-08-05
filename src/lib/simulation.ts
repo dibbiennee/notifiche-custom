@@ -30,10 +30,15 @@ export interface Simulation {
    *  la data e non "quanti giorni fa". */
   dayTargets?: Record<string, number>;
   businessDays: number;
-  /** Il giorno assoluto in cui l'attivita' ha aperto: da li' parte la rampa di
-   *  crescita. Fisso, altrimenti col passare del tempo ogni giornata
-   *  scivolerebbe indietro sulla rampa e cambierebbe valore. */
+  /** Il giorno assoluto in cui l'attivita' ha aperto. Prima di questo giorno
+   *  non esiste niente: zero incassi, zero pagamenti. Fisso, altrimenti col
+   *  passare del tempo ogni giornata scivolerebbe indietro sulla rampa e
+   *  cambierebbe valore. */
   startDay?: number;
+  /** Su quanti giorni si distende la crescita, dall'apertura al massimo. E'
+   *  staccato da `businessDays` di proposito: un'attivita' aperta ieri deve
+   *  poter crescere per mesi, non arrivare al tetto domani. */
+  rampDays?: number;
   /** Resta sotto 2^53: oltre, JSON e JavaScript lo arrotonderebbero e il
    *  telefono e il browser genererebbero numeri diversi. */
   seed: number;
@@ -160,12 +165,15 @@ export function day(simulation: Simulation, offset: number): SimulatedDay {
   // al massimo oggi. Sopra ci sono due disturbi, il mese buono o scarso e lo
   // scarto del singolo giorno, che servono solo a non far venire una retta. Il
   // valore resta comunque dentro l'intervallo impostato.
-  const arco = Math.max(1, Math.max(2, simulation.businessDays) - 1);
-  const inizio = simulation.startDay ?? giorno + offset - arco;
-  // La rampa e' piu' lunga dello storico che si vede: cosi' oggi sta all'80%
-  // e non al tetto. Se arrivasse al massimo proprio oggi, le ultime settimane
-  // verrebbero tutte schiacciate contro il tetto e piatte.
-  const rampa = arco * 1.25;
+  const inizio = simulation.startDay ?? giorno + offset - Math.max(1, Math.max(2, simulation.businessDays) - 1);
+
+  // Prima dell'apertura non c'e' niente da mostrare: non e' una giornata
+  // andata male, e' una giornata che non esiste.
+  if (giorno < inizio) {
+    return { offset, payments: [], gross: 0, paymentCount: 0, customers: 0 };
+  }
+
+  const rampa = Math.max(1, simulation.rampDays ?? 500);
   const progresso = Math.min(1, Math.max(0, (giorno - inizio) / rampa));
 
   const block = Math.floor(giorno / 30);
@@ -222,6 +230,14 @@ export function net(simulation: Simulation, gross: number): number {
 
 export const PERIODS = ['1W', '4W', '1Y', 'MTD', 'QTD', 'YTD', 'ALL'] as const;
 export type Period = (typeof PERIODS)[number];
+
+/** Da quanti giorni l'attivita' e' aperta, contando oggi. Se il giorno di
+ *  apertura e' fissato viene da li', e cresce da solo col passare dei giorni;
+ *  altrimenti resta il numero scritto a mano. */
+export function businessSpan(simulation: Simulation, now = new Date()): number {
+  if (simulation.startDay === undefined) return Math.max(2, simulation.businessDays);
+  return Math.max(2, epochDay(0, now) - simulation.startDay + 1);
+}
 
 export function dayCount(period: Period, today: Date, businessDays: number): number {
   switch (period) {

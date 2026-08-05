@@ -46,10 +46,16 @@ struct Simulation: Codable, Equatable {
     /// lunghezza della rampa di crescita.
     var businessDays: Int = 400
 
-    /// Il giorno assoluto in cui l'attivita' ha aperto: da li' parte la rampa.
-    /// Fisso, altrimenti col passare del tempo ogni giornata scivolerebbe
-    /// indietro sulla rampa e cambierebbe valore.
+    /// Il giorno assoluto in cui l'attivita' ha aperto. Prima di questo giorno
+    /// non esiste niente: zero incassi, zero pagamenti. Fisso, altrimenti col
+    /// passare del tempo ogni giornata scivolerebbe indietro sulla rampa e
+    /// cambierebbe valore.
     var startDay: Int?
+
+    /// Su quanti giorni si distende la crescita, dall'apertura al massimo. E'
+    /// staccato da `businessDays` di proposito: un'attivita' aperta ieri deve
+    /// poter crescere per mesi, non arrivare al tetto domani.
+    var rampDays: Int?
 
     /// Cambiandolo cambiano tutti i numeri, restando dentro gli stessi
     /// intervalli. E' quello che rende la simulazione stabile: senza, i valori
@@ -185,12 +191,15 @@ extension Simulation {
         // mese buono o scarso e lo scarto del singolo giorno, che servono solo
         // a non far venire una retta. Il valore resta comunque dentro
         // l'intervallo impostato.
-        let arco = max(1, max(2, businessDays) - 1)
-        let inizio = startDay ?? (giorno + offset - arco)
-        // La rampa e' piu' lunga dello storico che si vede: cosi' oggi sta
-        // all'80% e non al tetto. Se arrivasse al massimo proprio oggi, le
-        // ultime settimane verrebbero tutte schiacciate contro il tetto.
-        let rampa = Double(arco) * 1.25
+        let inizio = startDay ?? (giorno + offset - max(1, max(2, businessDays) - 1))
+
+        // Prima dell'apertura non c'e' niente da mostrare: non e' una giornata
+        // andata male, e' una giornata che non esiste.
+        if giorno < inizio {
+            return SimulatedDay(offset: offset, payments: [], customers: 0)
+        }
+
+        let rampa = Double(max(1, rampDays ?? 500))
         let progresso = min(1, max(0, Double(giorno - inizio) / rampa))
 
         let block = Int(floor(Double(giorno) / 30))
@@ -238,6 +247,14 @@ extension Simulation {
     }
 
     func customerCount(_ day: SimulatedDay) -> Int { day.customers }
+
+    /// Da quanti giorni l'attivita' e' aperta, contando oggi. Se il giorno di
+    /// apertura e' fissato viene da li', e cresce da solo col passare dei
+    /// giorni; altrimenti resta il numero scritto a mano.
+    func businessSpan(now: Date = Date()) -> Int {
+        guard let startDay else { return max(2, businessDays) }
+        return max(2, Simulation.epochDay(0, now: now) - startDay + 1)
+    }
 
     /// Quanto e' entrato dall'inizio della giornata fino a `upToHour`, ora per
     /// ora. I pagamenti si distribuiscono fra le 6 e le 23, con piu' peso nel

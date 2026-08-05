@@ -85,7 +85,7 @@ struct Dashboard {
 
 extension Dashboard {
     init(simulation: Simulation, period: Period, today: Date = Date(), calendar: Calendar = .current) {
-        let days = period.dayCount(today: today, calendar: calendar, businessDays: simulation.businessDays)
+        let days = period.dayCount(today: today, calendar: calendar, businessDays: simulation.businessSpan(now: today))
 
         // Il periodo corrente arriva a oggi; quello precedente e' lungo uguale
         // e finisce il giorno prima che cominci il corrente.
