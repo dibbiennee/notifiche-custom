@@ -27,7 +27,7 @@ N different logos → N installed icons.
 
 ## Deploying to Vercel
 
-In production: **https://notifiche-custom-seven.vercel.app**
+In production: **https://notifiche-custom.vercel.app**
 
 The order of the steps is forced:
 
@@ -144,6 +144,13 @@ xcrun devicectl device install app --device IDENTIFIER ./dd/Build/Products/Debug
 - With the app in the foreground iOS does not show the banner: use a delay and
   lock the screen, or fire the send from another device.
 - Maximum delay 7 days, a QStash limit.
+- **A `.vercel.app` name follows the project, not the account.** Moving the app
+  to another Vercel account leaves the old project holding the name, and the new
+  one gets a suffix. That is not cosmetic: cookies, the notification permission
+  and the push subscription are all bound to the origin, so on a new address iOS
+  treats the installed PWA as a different site and asks to set it up again.
+  Delete the domain from the old project, then `vercel domains add <name>
+  <project>` on the new one, and everything installed keeps working.
 - **A free Upstash database is deleted after a month of inactivity.** Everything
   then answers `500` with `ENOTFOUND`, and the site looks broken while nothing in
   the code is. Upstash keeps it recoverable for a while: create a fresh database,
@@ -178,7 +185,7 @@ authentication and the QStash round trip — with no iPhone needed. It registers
 fake subscription, schedules a send an hour out and cancels it, then cleans up:
 
 ```bash
-npm run smoke -- https://notifiche-custom-seven.vercel.app
+npm run smoke -- https://notifiche-custom.vercel.app
 ```
 
 It is the quickest way to notice that `PUBLIC_BASE_URL` is wrong.
