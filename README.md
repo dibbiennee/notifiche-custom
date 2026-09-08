@@ -27,7 +27,7 @@ N different logos → N installed icons.
 
 ## Deploying to Vercel
 
-In production: **https://notifiche-custom.vercel.app**
+In production: **https://notifiche-custom-seven.vercel.app**
 
 The order of the steps is forced:
 
@@ -144,6 +144,12 @@ xcrun devicectl device install app --device IDENTIFIER ./dd/Build/Products/Debug
 - With the app in the foreground iOS does not show the banner: use a delay and
   lock the screen, or fire the send from another device.
 - Maximum delay 7 days, a QStash limit.
+- **A free Upstash database is deleted after a month of inactivity.** Everything
+  then answers `500` with `ENOTFOUND`, and the site looks broken while nothing in
+  the code is. Upstash keeps it recoverable for a while: create a fresh database,
+  restore the deleted one into it, then put its REST credentials in `.env.local`
+  and upload them again. The `dayTargets` and the settings live in that single
+  row, so losing it loses them.
 
 ## Architecture in brief
 
@@ -172,7 +178,7 @@ authentication and the QStash round trip — with no iPhone needed. It registers
 fake subscription, schedules a send an hour out and cancels it, then cleans up:
 
 ```bash
-npm run smoke -- https://notifiche-custom.vercel.app
+npm run smoke -- https://notifiche-custom-seven.vercel.app
 ```
 
 It is the quickest way to notice that `PUBLIC_BASE_URL` is wrong.

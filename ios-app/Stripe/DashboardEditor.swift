@@ -184,7 +184,7 @@ struct DashboardEditor: View {
 
                 Section {
                     LabeledContent("Address") {
-                        TextField("notifiche-custom.vercel.app", text: $store.sync.baseURL)
+                        TextField("notifiche-custom-seven.vercel.app", text: $store.sync.baseURL)
                             .multilineTextAlignment(.trailing)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
