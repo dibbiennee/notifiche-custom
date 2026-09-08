@@ -12,6 +12,7 @@ import {
   dateAt,
   dateKey,
   day,
+  dayToNow,
   dailyGross,
   failedPayments,
   money,
@@ -548,7 +549,7 @@ function derive(simulation: Simulation) {
   // sale con le ore, come nell'originale. E' l'ultimo punto della linea piena
   // del grafico, quindi i due non possono discordare.
   const oreOggi = cumulativeByHour(simulation, 0, now.getHours());
-  const maturatoOggi = oreOggi[oreOggi.length - 1] ?? 0;
+  const maturatoOggi = dayToNow(simulation, 0, now.getHours()).gross;
 
   return {
     now: timeLabel.format(now),

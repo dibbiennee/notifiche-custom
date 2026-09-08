@@ -256,6 +256,29 @@ extension Simulation {
         return max(2, Simulation.epochDay(0, now: now) - startDay + 1)
     }
 
+    /// La giornata fino all'ora indicata: solo i pagamenti gia' arrivati, con
+    /// il loro numero e i loro clienti. Le ore sono le stesse di
+    /// `cumulativeByHour`, quindi le cifre della fascia raccontano tutte lo
+    /// stesso momento invece di mescolarne due: l'incasso di adesso accanto ai
+    /// pagamenti di fine giornata dava zero euro con cinque pagamenti, che non
+    /// sta in piedi.
+    func dayToNow(_ offset: Int, upToHour: Int, now: Date = Date()) -> SimulatedDay {
+        let d = day(offset)
+        var rng = SeededRandom(seed &+ UInt64(bitPattern: Int64(Simulation.epochDay(offset, now: now)) &* 104_729))
+        let base = paymentAmounts.filter { $0 > 0 }.sorted().first
+
+        var payments: [Double] = []
+        var customers = 0
+        for amount in d.payments {
+            let ora = min(23, Int(6 + rng.double() * 18))
+            guard ora <= upToHour else { continue }
+            payments.append(amount)
+            if amount == base { customers += 1 }
+        }
+
+        return SimulatedDay(offset: offset, payments: payments, customers: customers)
+    }
+
     /// Quanto e' entrato dall'inizio della giornata fino a `upToHour`, ora per
     /// ora. I pagamenti si distribuiscono fra le 6 e le 23, con piu' peso nel
     /// pomeriggio. Deve restare identica a `cumulativeByHour` in
@@ -307,9 +330,9 @@ extension Simulation {
         return out.sorted { $0.date < $1.date }
     }
 
-    /// Quanto e' entrato finora oggi: l'ultimo punto della curva delle ore.
-    func grossSoFar(now: Date = Date(), calendar: Calendar = .current) -> Double {
-        cumulativeByHour(0, upToHour: calendar.component(.hour, from: now)).last ?? 0
+    /// La giornata di oggi fino a questo momento.
+    func today(now: Date = Date(), calendar: Calendar = .current) -> SimulatedDay {
+        dayToNow(0, upToHour: calendar.component(.hour, from: now), now: now)
     }
 
     func net(_ gross: Double) -> Double {

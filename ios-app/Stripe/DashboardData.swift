@@ -100,10 +100,11 @@ extension Dashboard {
         let grossCurrent = currentDaily.reduce(0, +)
         let grossPrevious = previousDaily.reduce(0, +)
 
-        let oggi = simulation.day(0)
-        // La fascia in alto mostra quanto e' entrato finora, non il totale
-        // della giornata: sale con le ore, come nell'originale.
-        let finora = simulation.grossSoFar(now: today, calendar: calendar)
+        // La fascia in alto racconta il momento presente, non la giornata
+        // intera: l'incasso, i pagamenti e i clienti sono tutti e tre quelli
+        // gia' arrivati. Mescolarli dava zero euro con cinque pagamenti.
+        let oggi = simulation.today(now: today, calendar: calendar)
+        let finora = oggi.gross
         let symbol = simulation.currency.reportSymbol
         let cardSymbol = simulation.currency.cardSymbol
 

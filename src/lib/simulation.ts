@@ -336,6 +336,31 @@ export function paymentBreakdown(simulation: Simulation, from: number, to: numbe
 
 /** L'incasso di oggi ora per ora, sommato: è la linea piena del grafico in
  *  alto. Si ferma all'ora corrente, perché la giornata non è finita. */
+/** La giornata fino all'ora indicata: solo i pagamenti gia' arrivati, con il
+ *  loro numero e i loro clienti. Le ore sono le stesse di `cumulativeByHour`,
+ *  quindi le cifre della fascia raccontano tutte lo stesso momento invece di
+ *  mescolarne due: l'incasso di adesso accanto ai pagamenti di fine giornata
+ *  dava zero euro con cinque pagamenti, che non sta in piedi.
+ */
+export function dayToNow(simulation: Simulation, offset: number, upToHour: number): SimulatedDay {
+  const d = day(simulation, offset);
+  const rng = new SeededRandom((BigInt(simulation.seed) + BigInt(epochDay(offset)) * 104_729n) & MASK);
+  const base = simulation.paymentAmounts.filter((a) => a > 0).sort((a, b) => a - b)[0];
+
+  const payments: number[] = [];
+  let customers = 0;
+  let gross = 0;
+  for (const amount of d.payments) {
+    const hour = Math.min(23, Math.floor(6 + rng.double() * 18));
+    if (hour > upToHour) continue;
+    payments.push(amount);
+    gross += amount;
+    if (amount === base) customers += 1;
+  }
+
+  return { offset, payments, gross, paymentCount: payments.length, customers };
+}
+
 export function cumulativeByHour(
   simulation: Simulation,
   offset: number,
